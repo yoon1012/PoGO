@@ -404,6 +404,11 @@ function pokemonInfoReturn (pokemon){
     } else {
         var dbToUse = DoriDB.readData("pokemoninfo");
     }
+
+    if (dbToUse == null)
+    {
+        return 'none'
+    }
     
     var keyNumber;
     var divideCategory = dbToUse.split("\n"); //첫 줄 빼기용
