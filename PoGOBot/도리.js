@@ -14,6 +14,8 @@ var currentTime = new Date(); var currentHour = currentTime.getHours(); var curr
 
 var roomNameForPrint = '도곡';
 
+// TODO : 파일 입출력
+
 /*DoriDB 객체*/
 DoriDB.createDir = function () { //배운 채팅들이 저장될 폴더를 만드는 함수
     var folder = new java.io.File(sdcard + "/Dori/"); //File 인스턴스 생성
@@ -98,7 +100,7 @@ Utils.getDustData = function (desiredLocation) { //전국 미세먼지 정보 �
 };
 
 
-function getWeathetInfo(pos) {
+function getWeatherInfo(pos) {
     try {
         var data = Utils.getWebText("https://m.search.naver.com/search.naver?query=" + pos + "%20날씨");  //검색 결과 파싱
         data = data.replace(/<[^>]+>/g, "");  //태그 삭제
@@ -2780,7 +2782,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
 
 
-
+        /*
         //여기부터는 노는 것 & 도리 관련 & 포켓몬고 관련되지 않은 것
         //새로 추가해보자
 
@@ -2858,7 +2860,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
                 msg = '강남'
             }
             var getTodayDate = new Date();
-            returnText = "[" + (getTodayDate.getMonth() + 1) + '월 ' + getTodayDate.getDate() + '일 ' + msg + " 날씨 정보]\n\n" + getWeathetInfo(msg) + '\n' + Utils.getDustData(msg) + "\n트레이너분들 건강하세요~!";
+            returnText = "[" + (getTodayDate.getMonth() + 1) + '월 ' + getTodayDate.getDate() + '일 ' + msg + " 날씨 정보]\n\n" + getWeatherInfo(msg) + '\n' + Utils.getDustData(msg) + "\n트레이너분들 건강하세요~!";
 
 
         }
@@ -3044,16 +3046,15 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
                 returnText = "안녕하세요 트레이너님!☺️";
             }
         }
+        */
 
+        // TODO : 도움말
+        // TODO : 규칙
 
         if (returnText == "none") {
             returnText = simpleTalk(msg);
         }
     }
-
-
-
-
 
     //정보추가는 이정도로 해두고 현황을 짜보자
     //ㅁ + 정보는 지금 빠졌다
@@ -3073,6 +3074,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         }
     }
 
+    // TODO : 레이드 모집
 
     //출석부 현황을 보여주는 것 -> 팟 현황 or 출석부 현황
 
@@ -3215,6 +3217,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     msg = msg.trim();
 
 
+    // TODO : 레이드 제보
 
     roomNameForPrint = room;
     if (!room.includes('강남구 포켓몬고 레이드 제보 방')) {
