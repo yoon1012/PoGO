@@ -16,6 +16,19 @@ var roomNameForPrint = '도곡';
 
 // TODO : 파일 입출력
 
+// 레이드 제보 관리 객체
+function RaidReportManager() { }
+
+RaidReportManager.deleteRaidReports = function () {
+
+}
+
+RaidReportManager.getRaidReports = function () {
+    return "레이드 제보";
+}
+
+const raidReportManager = new RaidReportManager();
+
 /*DoriDB 객체*/
 DoriDB.createDir = function () { //배운 채팅들이 저장될 폴더를 만드는 함수
     var folder = new java.io.File(sdcard + "/Dori/"); //File 인스턴스 생성
@@ -1740,7 +1753,9 @@ function deleteThisReport(dbName, toDel) {
 }
 
 //레이드 정보 프린트하는 함수 (레이드 정보 최종은 여기서 끝난다)
-function printReport(dbName, raidList) {
+function printReport(dbName, raidList)
+{
+    /*
     var listInTwelve = raidList.split('\n');
     //listInTwelve = 3,30,4,15,작은분수
     var listForSending = '레이드 제보'
@@ -1955,6 +1970,9 @@ function printReport(dbName, raidList) {
     } else {
         return '현재 제보가 없습니다';
     }
+    */
+
+    return "레이드 제보";
 }
 
 //레이드하고 리서치 목록 돌려주는 함수 (나도 왜 내가 이렇게 짰는지 몰라. //아악 이거 벌써 바꿔야지 하고 반년지났네)
@@ -2421,21 +2439,72 @@ function procCmd(room, cmd, sender, replier) {
         Api.reload();
         replier.reply('리로드 완료');
     }
-
-
 }
 
-function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId) {
-    /*(이 내용은 길잡이일 뿐이니 지우셔도 무방합니다)
-     *(String) room: 메시지를 받은 방 이름
-     *(String) msg: 메시지 내용
-     *(String) sender: 전송자 닉네임
-     *(boolean) isGroupChat: 단체/오픈채팅 여부
-     *replier: 응답용 객체. replier.reply("메시지") 또는 replier.reply("방이름","메시지")로 전송
-     *(String) ImageDB.getProfileImage(): 전송자의 프로필 이미지를 Base64로 인코딩하여 반환
-     *(String) packageName: 메시지를 받은 메신저의 패키지 이름. (카카오톡: com.kakao.talk, 페메: com.facebook.orca, 라인: jp.naver.line.android
-     *(int) threadId: 현재 쓰레드의 순번(스크립트별로 따로 매김)     *Api,Utils객체에 대해서는 설정의 도움말 참조*/
+function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId)
+{
+    /*
+    (String) room: 메시지를 받은 방 이름
+    (String) msg: 메시지 내용
+    (String) sender: 전송자 닉네임
+    (boolean) isGroupChat: 단체/오픈채팅 여부
+    replier: 응답용 객체. replier.reply("메시지") 또는 replier.reply("방이름","메시지")로 전송
+    (String) ImageDB.getProfileImage(): 전송자의 프로필 이미지를 Base64로 인코딩하여 반환
+    (String) packageName: 메시지를 받은 메신저의 패키지 이름. (카카오톡: com.kakao.talk, 페메: com.facebook.orca, 라인: jp.naver.line.android
+    (int) threadId: 현재 쓰레드의 순번(스크립트별로 따로 매김)
+    Api, Utils객체에 대해서는 설정의 도움말 참조
+    */
 
+    var username = sender.split('/')[0];
+
+    // 테스트
+    if (msg.includes("도리야 안녕"))
+    {
+        replier.reply(username + "님 안녕하세요!");
+        return;
+    }
+
+    // TODO : 운영진 등록 기능 (나중에)
+
+    if (msg == "모두리셋" || msg == "모두 리셋")
+    {
+        raidReportManager.deleteRaidReports();
+
+        replier.reply("제보와 레이드 모집을 초기화했습니다.");
+        return;
+    }
+
+    // TODO : 스탑 및 체육관 검색 (나중에)
+
+    // TODO : 로켓단 제보 (나중에)
+
+    // TODO : 리서치 제보 (나중에)
+
+    // 레이드 현황
+
+    if (msg == "현황" || msg == "제보 현황")
+    {
+        var responseString = raidReportManager.getRaidReports();
+
+        if (responseString == null || responseString == "")
+        {
+            return;
+        }
+        
+        replier.reply(responseString);
+        return;
+    }
+
+    // TODO : 레이드 제보
+
+    if (msg.endsWith("제보"))
+    {
+        return;
+    }
+}
+
+/*
+    /*
     if (msg.includes('  ')) {
         msg = msg.replace('    ', ' '); msg = msg.replace('   ', ' '); msg = msg.replace('  ', ' ');
     }
@@ -2668,7 +2737,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
             returnText = keyToText(null, "typePokemon_" + typeIs);
         }
-
+        */
 
 
         //둥지 정보 업데이트 -> 업데이트 이후에는 무조건 둥지를 준다 msg 유지
@@ -2679,7 +2748,8 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
             DoriDB.saveData('nest',theLongBlock + '\n\n출저(제보도 여기로!): http://ssojing.ipdisk.co.kr:8000/list/HDD1/Melon/Pokemon/map.htm\n\n*둥지는 2주 간격으로 목요일에 변경됩니다.\n*업데이트 하시려면 도리 둥지 업데이트 / ㅁ둥지 업데이트로 적어주세요\n\n' + Utils.getNestInfo());
         }
         */
-
+    
+        /*
         //여기 아래부터는 else if로. 혹시 모르니까
         //둥지 정보
         if (msg.includes('둥지')) {
@@ -2771,7 +2841,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
             replier.reply(exShare(sender, msg, useExShare));
             returnText = UniqueDB.readData(useExShare);
         }
-
+        */
 
 
 
@@ -3048,14 +3118,17 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         }
         */
 
-        // TODO : 도움말
-        // TODO : 규칙
+        // TODO : 도움말 (나중에)
+        // TODO : 규칙 (나중에)
 
+        /*
         if (returnText == "none") {
             returnText = simpleTalk(msg);
         }
     }
+    */
 
+    /*
     //정보추가는 이정도로 해두고 현황을 짜보자
     //ㅁ + 정보는 지금 빠졌다
     //ㅁ을 붙여서 넣든 아니든 여기까지 오는거임
@@ -3074,12 +3147,14 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         }
     }
 
-    // TODO : 레이드 모집
+    // TODO : 레이드 모집 (나중에)
 
     //출석부 현황을 보여주는 것 -> 팟 현황 or 출석부 현황
 
     //출석부 사전 준비 + 오타 수정
+    */
 
+    /*
     msg = msg.replace('출석부', '팟');
 
 
@@ -3215,10 +3290,10 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     msg = msg.replace('레이드 정보', '현황');
 
     msg = msg.trim();
+    */
 
 
-    // TODO : 레이드 제보
-
+    /*
     roomNameForPrint = room;
     if (!room.includes('강남구 포켓몬고 레이드 제보 방')) {
         if (msg.includes("현황") && msg.includes("전체")) {
@@ -3302,8 +3377,9 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
             }
         }
     }
+    */
 
-
+    /*
     //리서치 시작
     //이전에 바꿔둔것 바꾸기
     msg = msg.replace('Sierra', '시에라');
@@ -3319,28 +3395,24 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         msg = "끝났어!";
     }
 
-    if ((msg == '전부 리셋')) {
-        returnText = raidReportReturn(useRaidStatus, null, "DELETE ALL");
-        returnText = raidReportReturn(useResearch, null, "DELETE ALL");
-        returnText = rosterReset(useRoster);
-        returnText = '리서치 목록, 제보, 출석부가 전부 리셋되었습니다.';
-    }
+    
+    */
 
     //끝
-
-
-
-    if (returnText != "none") {
+/*
+    if (returnText != "none")
+    {
         replier.reply(returnText);
     }
 }
+*/
 
-
-
-function onStartCompile() {
+function onStartCompile()
+{
     /*컴파일 또는 Api.reload호출시, 컴파일 되기 이전에 호출되는 함수입니다.
      *제안하는 용도: 리로드시 자동 백업*/
 
+    
 }
 
 //아래 4개의 메소드는 액티비티 화면을 수정할때 사용됩니다.
