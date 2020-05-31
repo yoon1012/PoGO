@@ -10,14 +10,18 @@ const sdcard = android.os.Environment.getExternalStorageDirectory().getAbsoluteP
 /*상수 (객체) 선언*/
 const DoriDB = {}; const preChat = {}; const lastSender = {}; const botOn = {}; const basicDB = "basic";
 const UniqueDB = {};
-var currentTime = new Date(); var currentHour = currentTime.getHours(); var currentMinute = currentTime.getMinutes(); var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + "일";
+
+var currentTime = new Date();
+var currentHour = currentTime.getHours();
+var currentMinute = currentTime.getMinutes();
+var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + "일";
 
 var roomNameForPrint = '도곡';
 
 // TODO : 파일 입출력
 
 // 레이드 제보 관리 객체
-function RaidReportManager() { }
+const RaidReportManager = {}
 
 RaidReportManager.deleteRaidReports = function () {
 
@@ -27,7 +31,9 @@ RaidReportManager.getRaidReports = function () {
     return "레이드 제보";
 }
 
-const raidReportManager = new RaidReportManager();
+RaidReportManager.addRaidReports = function (raidReportString) {
+    return 0;
+}
 
 /*DoriDB 객체*/
 DoriDB.createDir = function () { //배운 채팅들이 저장될 폴더를 만드는 함수
@@ -1753,8 +1759,7 @@ function deleteThisReport(dbName, toDel) {
 }
 
 //레이드 정보 프린트하는 함수 (레이드 정보 최종은 여기서 끝난다)
-function printReport(dbName, raidList)
-{
+function printReport(dbName, raidList) {
     /*
     var listInTwelve = raidList.split('\n');
     //listInTwelve = 3,30,4,15,작은분수
@@ -2441,8 +2446,17 @@ function procCmd(room, cmd, sender, replier) {
     }
 }
 
-function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId)
-{
+function printRaidReports(replier) {
+    var responseString = RaidReportManager.getRaidReports();
+
+    if (responseString == null || responseString == "") {
+        return;
+    }
+
+    replier.reply(responseString);
+}
+
+function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId) {
     /*
     (String) room: 메시지를 받은 방 이름
     (String) msg: 메시지 내용
@@ -2455,24 +2469,25 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     Api, Utils객체에 대해서는 설정의 도움말 참조
     */
 
-    var username = sender.split('/')[0];
+    var senderName = sender.split('/')[0];
 
     // 테스트
-    if (msg.includes("도리야 안녕"))
-    {
-        replier.reply(username + "님 안녕하세요!");
+    if (msg.includes("도리야 안녕")) {
+        replier.reply(senderName + "님 안녕하세요!");
         return;
     }
 
     // TODO : 운영진 등록 기능 (나중에)
 
-    if (msg == "모두리셋" || msg == "모두 리셋")
-    {
-        raidReportManager.deleteRaidReports();
-
-        replier.reply("제보와 레이드 모집을 초기화했습니다.");
+    // [운영진 전용]
+    // 모두리셋
+    if (msg == "모두리셋" || msg == "모두 리셋") {
+        RaidReportManager.deleteRaidReports();
+        replier.reply("제보와 모집 글을 초기화했습니다.");
         return;
     }
+
+    // 유지시간변경
 
     // TODO : 스탑 및 체육관 검색 (나중에)
 
@@ -2480,27 +2495,34 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
     // TODO : 리서치 제보 (나중에)
 
-    // 레이드 현황
+    // [레이드 제보]
+    // 현황
+    if (msg == "현황" || msg == "제보 현황") {
+        printRaidReports(replier);
+        return;
+    }
 
-    if (msg == "현황" || msg == "제보 현황")
-    {
-        var responseString = raidReportManager.getRaidReports();
+    // 제보
+    if (msg.endsWith("제보")) {
+        var addedRaidReportCount = RaidReportManager.addRaidReports(msg);
 
-        if (responseString == null || responseString == "")
-        {
-            return;
+        if (addedRaidReportCount == 0) {
+            replier.reply("레이드 제보가 추가되지 않았습니다.");
         }
-        
-        replier.reply(responseString);
+        else if (addedRaidReportCount > 0) {
+            replier.reply(addedReportCount + "개의 레이드 제보가 추가되었습니다.");
+        }
+
         return;
     }
 
-    // TODO : 레이드 제보
+    // 남음
 
-    if (msg.endsWith("제보"))
-    {
-        return;
-    }
+    // 제보내용변경
+
+    // 제보시간변경
+
+    // 제보삭제
 }
 
 /*
@@ -2740,108 +2762,108 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         */
 
 
-        //둥지 정보 업데이트 -> 업데이트 이후에는 무조건 둥지를 준다 msg 유지
-        /* 사이트가 죽음
-        if (msg.includes('둥지') && msg.includes('업데이트')){
-            replier.reply('둥지 업데이트를 시작합니다.');
-            var theLongBlock = '서울/경기 둥지 정보 [펼쳐주세요] ‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮';
-            DoriDB.saveData('nest',theLongBlock + '\n\n출저(제보도 여기로!): http://ssojing.ipdisk.co.kr:8000/list/HDD1/Melon/Pokemon/map.htm\n\n*둥지는 2주 간격으로 목요일에 변경됩니다.\n*업데이트 하시려면 도리 둥지 업데이트 / ㅁ둥지 업데이트로 적어주세요\n\n' + Utils.getNestInfo());
-        }
-        */
-    
-        /*
-        //여기 아래부터는 else if로. 혹시 모르니까
-        //둥지 정보
-        if (msg.includes('둥지')) {
-            replier.reply('darkrai.synology로부터 최신 둥지 정보를 받는 중입니다.');
-            returnText = Utils.getNestTest(msg); msg = 'DONEDONE';
-        } else if (msg.includes('검색') && msg.includes('키워드')) {
-            returnText = keyToText(null, 'searchKeywords');
-        } else if (msg.includes('이벤트')) {
-            returnText = keyToText(null, 'event');
-        } else if (msg.includes('커뮤데이') || msg.includes('커뮤니티')) {
-            returnText = keyToText(null, 'community');
-        } else if (msg.includes('날씨') && ((msg.includes('버프')) || msg.includes('포켓몬') || msg.includes('타입'))) {
-            returnText = keyToText(null, "weatherBuff"); msg = 'DONEDONE';
-        } else if (msg.includes('지역') && (msg.includes('락') || msg.includes('한정'))) {
-            returnText = keyToText(null, "regionLock");
-        } else if ((msg.includes('보스') || msg.includes('레이드')) && (msg.includes('목록') || msg.includes('리스트'))) {
-            replier.reply('실프로드로부터 레이드보스 목록을 불러옵니다.');
-            returnText = Utils.getRaidBossData(); msg = 'DONEDONE';
-        } else if (msg.includes('이로치')) {
-            returnText = keyToText(null, 'shiny');
-        } else if (msg.includes('신오의 돌') || msg.includes('신오의돌')) {
-            returnText = keyToText(null, 'sinnohstone');
-        } else if (msg.includes('알') && msg.includes('부화')) {
-            returnText = Utils.getEggHatch();
-        } else if (msg.includes('평가')) {
-            if (msg.includes('발러')) { returnText = keyToText(null, "valorAppraise"); }
-            if (msg.includes('미스틱')) { returnText = keyToText(null, "mysticAppraise"); }
-            if (msg.includes('인스')) { returnText = keyToText(null, "instinctAppraise"); }
-        } else if ((msg.includes('cp') || msg.includes('CP') || msg.includes('Cp')) && msg.includes('순위')) {
-            returnText = keyToText(null, 'cpRank');
-        } else if (msg.includes('성공') && msg.includes('조건')) {
-            msg = msg.replace('성공', ''); msg = msg.replace('조건', ''); msg = msg.trim();
-            returnText = keyToText(msg, "raidGuide");
-        } else if (msg.includes('아이템')) {
-            returnText = keyToText(null, "item");
-        } else if (msg.includes('경험치')) {
-            returnText = keyToText(null, "experience");
-        } else if (msg.includes('타입') && msg.includes('상성')) {
-            returnText = '포켓몬(본가) 타입 상성표\nhttps://imgur.com/a/8syiDgQ';
-        } else if (msg.includes('ex체육관') || msg.includes('EX체육관') || msg.includes('Ex체육관')) {
-            returnText = keyToText(null, 'exGyms');
-            msg = 'none';
-        }
+//둥지 정보 업데이트 -> 업데이트 이후에는 무조건 둥지를 준다 msg 유지
+/* 사이트가 죽음
+if (msg.includes('둥지') && msg.includes('업데이트')){
+    replier.reply('둥지 업데이트를 시작합니다.');
+    var theLongBlock = '서울/경기 둥지 정보 [펼쳐주세요] ‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮‮';
+    DoriDB.saveData('nest',theLongBlock + '\n\n출저(제보도 여기로!): http://ssojing.ipdisk.co.kr:8000/list/HDD1/Melon/Pokemon/map.htm\n\n*둥지는 2주 간격으로 목요일에 변경됩니다.\n*업데이트 하시려면 도리 둥지 업데이트 / ㅁ둥지 업데이트로 적어주세요\n\n' + Utils.getNestInfo());
+}
+*/
+
+/*
+//여기 아래부터는 else if로. 혹시 모르니까
+//둥지 정보
+if (msg.includes('둥지')) {
+    replier.reply('darkrai.synology로부터 최신 둥지 정보를 받는 중입니다.');
+    returnText = Utils.getNestTest(msg); msg = 'DONEDONE';
+} else if (msg.includes('검색') && msg.includes('키워드')) {
+    returnText = keyToText(null, 'searchKeywords');
+} else if (msg.includes('이벤트')) {
+    returnText = keyToText(null, 'event');
+} else if (msg.includes('커뮤데이') || msg.includes('커뮤니티')) {
+    returnText = keyToText(null, 'community');
+} else if (msg.includes('날씨') && ((msg.includes('버프')) || msg.includes('포켓몬') || msg.includes('타입'))) {
+    returnText = keyToText(null, "weatherBuff"); msg = 'DONEDONE';
+} else if (msg.includes('지역') && (msg.includes('락') || msg.includes('한정'))) {
+    returnText = keyToText(null, "regionLock");
+} else if ((msg.includes('보스') || msg.includes('레이드')) && (msg.includes('목록') || msg.includes('리스트'))) {
+    replier.reply('실프로드로부터 레이드보스 목록을 불러옵니다.');
+    returnText = Utils.getRaidBossData(); msg = 'DONEDONE';
+} else if (msg.includes('이로치')) {
+    returnText = keyToText(null, 'shiny');
+} else if (msg.includes('신오의 돌') || msg.includes('신오의돌')) {
+    returnText = keyToText(null, 'sinnohstone');
+} else if (msg.includes('알') && msg.includes('부화')) {
+    returnText = Utils.getEggHatch();
+} else if (msg.includes('평가')) {
+    if (msg.includes('발러')) { returnText = keyToText(null, "valorAppraise"); }
+    if (msg.includes('미스틱')) { returnText = keyToText(null, "mysticAppraise"); }
+    if (msg.includes('인스')) { returnText = keyToText(null, "instinctAppraise"); }
+} else if ((msg.includes('cp') || msg.includes('CP') || msg.includes('Cp')) && msg.includes('순위')) {
+    returnText = keyToText(null, 'cpRank');
+} else if (msg.includes('성공') && msg.includes('조건')) {
+    msg = msg.replace('성공', ''); msg = msg.replace('조건', ''); msg = msg.trim();
+    returnText = keyToText(msg, "raidGuide");
+} else if (msg.includes('아이템')) {
+    returnText = keyToText(null, "item");
+} else if (msg.includes('경험치')) {
+    returnText = keyToText(null, "experience");
+} else if (msg.includes('타입') && msg.includes('상성')) {
+    returnText = '포켓몬(본가) 타입 상성표\nhttps://imgur.com/a/8syiDgQ';
+} else if (msg.includes('ex체육관') || msg.includes('EX체육관') || msg.includes('Ex체육관')) {
+    returnText = keyToText(null, 'exGyms');
+    msg = 'none';
+}
 
 
-        //포켓몬고 관련된 정보는 계속 이 위로 추가하면 된다 (영향을 주는 것 같으면 msg를 바꾸는 걸 생각하자)
+//포켓몬고 관련된 정보는 계속 이 위로 추가하면 된다 (영향을 주는 것 같으면 msg를 바꾸는 걸 생각하자)
 
 
-        //이거 아래로는 포켓몬고와 관련 되었지만, 게임 내에서 참고하는 것은 아닌 정보를 준다. 혹은 간단한 keyToText로 안끝나는 것
-        if (msg.includes('인니페이') && msg.includes('시세')) {
-            returnText = Utils.getIniPayRate();
-        } else if (msg.includes('인니페이')) {
-            replier.reply('국가:인도네시아\n주소 입력란 1: RT.1/RW.4, Kuningan Tim., Kecamatan Setiabudi\n주소 입력란 2: Jl. Gatot Subroto No.Kav 57\n도시: Kota Jakarta Selatan\n주/도: DKI Jakarta\n우편번호: 12950')
-            replier.reply("http://m.dcinside.com/board/pokemongo/539962");
-        }
+//이거 아래로는 포켓몬고와 관련 되었지만, 게임 내에서 참고하는 것은 아닌 정보를 준다. 혹은 간단한 keyToText로 안끝나는 것
+if (msg.includes('인니페이') && msg.includes('시세')) {
+    returnText = Utils.getIniPayRate();
+} else if (msg.includes('인니페이')) {
+    replier.reply('국가:인도네시아\n주소 입력란 1: RT.1/RW.4, Kuningan Tim., Kecamatan Setiabudi\n주소 입력란 2: Jl. Gatot Subroto No.Kav 57\n도시: Kota Jakarta Selatan\n주/도: DKI Jakarta\n우편번호: 12950')
+    replier.reply("http://m.dcinside.com/board/pokemongo/539962");
+}
 
 
 
 
-        if (returnText == "none") {
-            msg = msg.replace('정보', '');
-        }
+if (returnText == "none") {
+    msg = msg.replace('정보', '');
+}
 
 
-        //정보는 여기서 빠진다
+//정보는 여기서 빠진다
 
-        var useExShare = 'exShare';
+var useExShare = 'exShare';
 
 
 
-        if (msg.includes('위치')) {
-            msg = msg.replace('위치', '');
-            returnText = getLocation(msg, 'locationCoordinatesDogok');
-        }
+if (msg.includes('위치')) {
+    msg = msg.replace('위치', '');
+    returnText = getLocation(msg, 'locationCoordinatesDogok');
+}
 
-        if ((msg.includes('사용방법') || msg.includes('사용법')) && (msg.includes('출석부') || msg.includes('팟'))) {
-            returnText = keyToText(null, 'rosterManual');
-        } else if ((msg.toLowerCase()).includes('ex') && msg.includes('리셋')) {
-            msg = ' ';
-            UniqueDB.saveData(useExShare, 'EX나눔 리스트');
-            returnText = 'EX나눔 리스트가 리셋 되었습니다.'
-        } else if ((msg.toLowerCase()).includes('ex') && msg.includes('현황')) {
-            msg = msg.replace('현황', '');
-            returnText = UniqueDB.readData(useExShare);
-        } else if ((msg.toLowerCase()).includes('ex') && msg.includes('완료')) {
-            replier.reply(exShareDel(sender, msg, useExShare));
-            returnText = UniqueDB.readData(useExShare);
-        } else if (msg.includes('나눔') && (msg.toLowerCase()).includes('ex')) {
-            replier.reply(exShare(sender, msg, useExShare));
-            returnText = UniqueDB.readData(useExShare);
-        }
-        */
+if ((msg.includes('사용방법') || msg.includes('사용법')) && (msg.includes('출석부') || msg.includes('팟'))) {
+    returnText = keyToText(null, 'rosterManual');
+} else if ((msg.toLowerCase()).includes('ex') && msg.includes('리셋')) {
+    msg = ' ';
+    UniqueDB.saveData(useExShare, 'EX나눔 리스트');
+    returnText = 'EX나눔 리스트가 리셋 되었습니다.'
+} else if ((msg.toLowerCase()).includes('ex') && msg.includes('현황')) {
+    msg = msg.replace('현황', '');
+    returnText = UniqueDB.readData(useExShare);
+} else if ((msg.toLowerCase()).includes('ex') && msg.includes('완료')) {
+    replier.reply(exShareDel(sender, msg, useExShare));
+    returnText = UniqueDB.readData(useExShare);
+} else if (msg.includes('나눔') && (msg.toLowerCase()).includes('ex')) {
+    replier.reply(exShare(sender, msg, useExShare));
+    returnText = UniqueDB.readData(useExShare);
+}
+*/
 
 
 
@@ -2852,33 +2874,33 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
 
 
-        /*
-        //여기부터는 노는 것 & 도리 관련 & 포켓몬고 관련되지 않은 것
-        //새로 추가해보자
+/*
+//여기부터는 노는 것 & 도리 관련 & 포켓몬고 관련되지 않은 것
+//새로 추가해보자
 
 
 
-        //여기까지
+//여기까지
 
-        msg = msg.trim();
+msg = msg.trim();
 
 
 
 
-        if (msg.includes('네이버')) {
-            returnText = 'https://m.search.naver.com/search.naver?query=' + msg.split(' ')[1];
-        } else if (msg.includes('유튜브') || msg.includes('유투브')) {
-            returnText = 'https://m.youtube.com/results?search_query=' + msg.split(' ')[1];
-        } else if (msg.includes('구글')) {
-            returnText = 'https://www.google.com/search?q=' + msg.split(' ')[1];
-        } else if (msg.includes('끝말잇기')) {
-            returnText = '저부터 시작할게요! 기쁨';
-        } else if (msg.includes('버그신고')) {
-            sayItToHype(sender, msg);
-            returnText = '버그가 접수되었습니다.'; msg = 'none';
-        } else if (msg == '패치노트') {
-            returnText = keyToText(null, 'patchNote');
-        }
+if (msg.includes('네이버')) {
+    returnText = 'https://m.search.naver.com/search.naver?query=' + msg.split(' ')[1];
+} else if (msg.includes('유튜브') || msg.includes('유투브')) {
+    returnText = 'https://m.youtube.com/results?search_query=' + msg.split(' ')[1];
+} else if (msg.includes('구글')) {
+    returnText = 'https://www.google.com/search?q=' + msg.split(' ')[1];
+} else if (msg.includes('끝말잇기')) {
+    returnText = '저부터 시작할게요! 기쁨';
+} else if (msg.includes('버그신고')) {
+    sayItToHype(sender, msg);
+    returnText = '버그가 접수되었습니다.'; msg = 'none';
+} else if (msg == '패치노트') {
+    returnText = keyToText(null, 'patchNote');
+}
 
 
 
@@ -2898,507 +2920,507 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
 
 
-        if (msg == "사용법" || msg == "사용방법" || ((msg.includes("누구야?") && msg.includes("넌") || msg.includes("자기소개")))) {
-            returnText = keyToText(null, "doriguide");
-        } else if ((msg.includes("입장 인사") || msg.includes("입장인사"))) {
-            var tempMsg = msg.split("님")[0]; msg = 'none';
-            returnText = tempMsg + UniqueDB.readData("newbieGuide");
-        } else if (msg.includes('나 알아') || msg.includes('나 아냐') || msg.includes('나 아니')) {
-            returnText = '알죠~~' + sender + '님이시잖아요!';
-        } else if (msg.includes('오늘') && msg.includes('할일')) {
-            returnText = '오늘 할일:\n1. 필드 리서치 1일  하기\n2. 무료패스 쓰기\n3. 트레이닝 (신오스톤 1개)\n4. 배틀 (신오스톤 3개)\n5. 사진찍기 (루브도)\n6. 럭키프렌드 (베프)\n7. 선물 열기(우정도)\n8. 전설 교환하기';
-        } else if (msg.includes('퇴근')) {
-            returnText = '음..오늘 퇴근은 ' + (Math.floor(Math.random() * 7) + 7) + '시 일까요?';
-            msg = 'none';
-        } else if (msg.includes('잘생긴') && msg.includes('사람')) {
-            returnText = '박보검.';
-            msg = 'none';
-        } else if (msg.includes('예쁜') && msg.includes('사람')) {
-            returnText = '김유정.';
-            msg = 'none';
-        } else if (msg.includes('미안')) {
-            returnText = '아니에요...제가 멍청해서 그래요ㅜㅜ';
-        } else if (msg.includes('따라해')) {
-            msg = msg.replace('따라해', ''); msg = msg.trim();
-            returnText = msg;
-        } else if (msg.includes('아무말')) {
-            returnText = keyToText("아무말", "gibberish");
-        } else if (msg.includes("날씨") || msg.includes('미세먼지')) {
-            msg = msg.replace('초미세먼지', ''); msg = msg.replace('미세먼지', '');
-            msg = msg.replace('날씨', ''); msg = msg.trim();
-            if (msg.length < 1) {
-                msg = '강남'
-            }
-            var getTodayDate = new Date();
-            returnText = "[" + (getTodayDate.getMonth() + 1) + '월 ' + getTodayDate.getDate() + '일 ' + msg + " 날씨 정보]\n\n" + getWeatherInfo(msg) + '\n' + Utils.getDustData(msg) + "\n트레이너분들 건강하세요~!";
+if (msg == "사용법" || msg == "사용방법" || ((msg.includes("누구야?") && msg.includes("넌") || msg.includes("자기소개")))) {
+    returnText = keyToText(null, "doriguide");
+} else if ((msg.includes("입장 인사") || msg.includes("입장인사"))) {
+    var tempMsg = msg.split("님")[0]; msg = 'none';
+    returnText = tempMsg + UniqueDB.readData("newbieGuide");
+} else if (msg.includes('나 알아') || msg.includes('나 아냐') || msg.includes('나 아니')) {
+    returnText = '알죠~~' + sender + '님이시잖아요!';
+} else if (msg.includes('오늘') && msg.includes('할일')) {
+    returnText = '오늘 할일:\n1. 필드 리서치 1일  하기\n2. 무료패스 쓰기\n3. 트레이닝 (신오스톤 1개)\n4. 배틀 (신오스톤 3개)\n5. 사진찍기 (루브도)\n6. 럭키프렌드 (베프)\n7. 선물 열기(우정도)\n8. 전설 교환하기';
+} else if (msg.includes('퇴근')) {
+    returnText = '음..오늘 퇴근은 ' + (Math.floor(Math.random() * 7) + 7) + '시 일까요?';
+    msg = 'none';
+} else if (msg.includes('잘생긴') && msg.includes('사람')) {
+    returnText = '박보검.';
+    msg = 'none';
+} else if (msg.includes('예쁜') && msg.includes('사람')) {
+    returnText = '김유정.';
+    msg = 'none';
+} else if (msg.includes('미안')) {
+    returnText = '아니에요...제가 멍청해서 그래요ㅜㅜ';
+} else if (msg.includes('따라해')) {
+    msg = msg.replace('따라해', ''); msg = msg.trim();
+    returnText = msg;
+} else if (msg.includes('아무말')) {
+    returnText = keyToText("아무말", "gibberish");
+} else if (msg.includes("날씨") || msg.includes('미세먼지')) {
+    msg = msg.replace('초미세먼지', ''); msg = msg.replace('미세먼지', '');
+    msg = msg.replace('날씨', ''); msg = msg.trim();
+    if (msg.length < 1) {
+        msg = '강남'
+    }
+    var getTodayDate = new Date();
+    returnText = "[" + (getTodayDate.getMonth() + 1) + '월 ' + getTodayDate.getDate() + '일 ' + msg + " 날씨 정보]\n\n" + getWeatherInfo(msg) + '\n' + Utils.getDustData(msg) + "\n트레이너분들 건강하세요~!";
 
 
-        }
+}
 
-        var currentTime = new Date(); var currentHour = currentTime.getHours(); var currentMinute = currentTime.getMinutes(); var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + "일";
+var currentTime = new Date(); var currentHour = currentTime.getHours(); var currentMinute = currentTime.getMinutes(); var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + "일";
 
 
-        //VS 놀이
-        if ((msg.toUpperCase()).includes("VS")) {
-            msg.replace('VS', 'vs'); msg.replace('Vs', 'vs'); msg.replace('vS', 'vs');
-            returnText = vsDetermineFUN('vsResult', msg);
-            msg = 'none';
-        }
+//VS 놀이
+if ((msg.toUpperCase()).includes("VS")) {
+    msg.replace('VS', 'vs'); msg.replace('Vs', 'vs'); msg.replace('vS', 'vs');
+    returnText = vsDetermineFUN('vsResult', msg);
+    msg = 'none';
+}
 
 
-        if (msg.includes('비밀번호') || (msg.includes('비번'))) {
-            returnText = "글쎄요..뭘까요?";
-        }
-        if (msg.includes("트레이너") && (msg.includes("코드") || msg.includes("목록"))) {
-            if (room.includes("도곡")) { //도곡방 이라면 -> 여기 방 이름에 맞게 바꾸세요
-                returnText = "도곡방 트레이너코드 : __________________\n\n친구 필요하시면 방장님꺼 등록하세요!!\n방장:_________________";
-            }
-        }
+if (msg.includes('비밀번호') || (msg.includes('비번'))) {
+    returnText = "글쎄요..뭘까요?";
+}
+if (msg.includes("트레이너") && (msg.includes("코드") || msg.includes("목록"))) {
+    if (room.includes("도곡")) { //도곡방 이라면 -> 여기 방 이름에 맞게 바꾸세요
+        returnText = "도곡방 트레이너코드 : __________________\n\n친구 필요하시면 방장님꺼 등록하세요!!\n방장:_________________";
+    }
+}
 
-        // 쓸모없는 것들@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// 쓸모없는 것들@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 
-        if (msg.includes('가위바위보')) {
-            msg = msg.replace('가위바위보');
-            if (msg.includes('가위') || msg.includes('바위') || msg.includes('보')) {
-                if (msg.includes('가위')) {
-                    returnText = rockPaperScissor('가위')
-                } else if (msg.includes('바위')) {
-                    returnText = rockPaperScissor('바위')
-                } else if (msg.includes('보')) {
-                    returnText = rockPaperScissor('보')
-                }
-            }
-        } else if (msg == "나가" || msg == "꺼져") {
-            returnText = "더 잘할게요...ㅠㅠ내쫓지 말아주세요ㅠㅠ";
-        }
-
-        if (msg.includes("주사위")) {
-            var icon = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
-            returnText = icon[Math.floor(Math.random() * 6)];
-        } else if (msg.includes('랜덤 개체값') || msg.includes('랜덤개체')) {
-            returnText = randomIVGen();
-        } else if (msg.includes('로또번호') || msg.includes('로또 번호')) {
-            returnText = randomLottery();
-        }
-
-
-
-        if ((msg.includes('한테') || msg.includes('께')) && msg.includes('인사')) {
-            msg = msg.replace("께", "한테"); msg = msg.replace('님', ''); msg = msg.split('한테')[0]; msg = msg.trim();
-            if (msg.includes(' ')) {
-                msg = msg.split(' '); msg = msg[msg.length - 1];
-            }
-            returnText = "안녕하세요 " + msg + "님! 반가워요!!😆😆😆";
-        } else if (msg.includes('칭찬')) {
-            var tempMsg = msg.split(' ')[0]; tempMsg.replace('님', '')
-            if (tempMsg == '나' || tempMsg.includes('칭찬')) {
-                returnText = "정말 잘하셨어요!! " + sender + " 칭찬해 😉😉😉";
-            } else {
-                returnText = "정말 잘하셨어요!! " + tempMsg + " 칭찬해 😉😉😉";
-            }
-        } else if (msg.includes('축하해')) {
-            var tempMsg = msg.split(' ')[0]; tempMsg.replace('님', '')
-            if (tempMsg == '나' || tempMsg.includes('칭찬')) {
-                returnText = "와!!! 짱이에요!!! " + sender + " 축하해 🤗🤗🤗";
-            } else {
-                returnText = "와!!! 짱이에요!!! " + tempMsg + " 축하해 🤗🤗🤗";
-            }
-        } else if (msg.includes('위로')) {
-            var tempMsg = msg.split(' ')[0]; tempMsg.replace('님', '')
-            if (tempMsg == '나' || tempMsg.includes('위로')) {
-                returnText = "아쉽네요ㅠㅠ " + sender + " 위로해 😢😢😢";
-            } else {
-                returnText = "아쉽네요ㅠㅠ " + tempMsg + " 위로해 😢😢😢";
-            }
-        }
-        if (msg.includes('모닝') && (msg.includes('스테') || msg.includes('스태'))) {
-            msg = 'none';
-        }
-
-        if (msg.includes('잘자') || msg.includes('굿밤') || msg.includes('굿나잇') || msg.includes('좋은밤') || msg.includes('좋은 밤')) {
-            if (sender.includes("/")) { sender = sender.split('/')[0]; }
-            returnText = sender + "님 " + keyToText("GOODBYE", "hello");
-        } else if (msg.includes('좋은 아침') || msg.includes('굿모닝') || msg.includes('좋은아침') || msg.includes('잘잤어?')) {
-            returnText = sender + "님 " + keyToText("GOODMORNING", "hello");
-        } else if ((msg.includes('잘했어') || msg.includes('최고') || msg.includes('짱') || msg.includes('수고') || msg.includes('고마')) && !returnText.includes('짱')) {
-            returnText = keyToText("GOODJOB", "hello");
-        }
-
-        if (msg.includes('아침') && (msg.includes('뭐') || msg.includes('추천'))) {
-            returnText = keyToText("BREAKFAST", "food");
-        } else if (msg.includes('점심')) {
-            returnText = keyToText("LUNCH", "food");
-        } else if (msg.includes('저녁')) {
-            returnText = keyToText("DINNER", "food");
-        } else if (msg.includes('간식')) {
-            returnText = keyToText("SNACK", "food");
-        } else if (msg.includes('야식')) {
-            returnText = keyToText("LATENIGHT", "food");
-        } else if ((msg.includes(' 술') || msg[0] == '술' || msg.includes('안주')) && (!msg.includes('비구술')) && (!msg.includes('기술'))) {
-            returnText = keyToText("ALCOHOL", "food");
-        } else if (msg.includes('밥')) {
-            returnText = keyToText("FOOD", "food");
-        }
-
-
-
-
-        if (msg.includes('뭐하니') || msg.includes('뭐해')) { returnText = '트레이너분들의 말을 기다리고 있어요!'; }
-        if (msg.includes('바보') || msg.includes('멍청이')) {
-            switch (Math.floor(Math.random() * 11)) {
-                case 0:
-                    returnText = '아 바보 아니라고;;'; break;
-                case 1:
-                    returnText = '아니에요ㅡㅡ매일매일 진화하고 있는걸요!'; break;
-                case 2:
-                    returnText = '뭐'; break;
-                case 3:
-                    returnText = '바보 아닌데ㅠ...😥'; break;
-                case 4:
-                    returnText = '그럼 잘 알려주던가!'; break;
-                case 5:
-                    returnText = '아니라구ㅠ'; break;
-                case 6:
-                case 7:
-                case 8:
-                case 9:
-                    returnText = '(훌쩍)바보 아닌데...'; break;
-                case 10:
-                    returnText = '😥바보 아닌데...'; break;
-            }
-        }
-        if (msg.includes('이쁜짓') || msg.includes('애교') || msg.includes('예쁜짓')) {
-
-            switch (Math.floor(Math.random() * 14)) {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                case 5:
-                case 6:
-                    returnText = "(심각)";
-                    break;
-                case 7:
-                case 8:
-                case 9:
-                    returnText = "(showoff)";
-                    break;
-                case 11:
-                    returnText = "왜 함 그걸";
-                    break;
-                case 12:
-                    returnText = "(angry)";
-                    break;
-                case 13:
-                    returnText = "웩";
-                    break;
-                case 14:
-                    returnText = "도리도리 >_<";
-                    break;
-            }
-        }
-        if (msg.includes('안녕')) {
-            if (sender.includes("/")) { sender = sender.split('/')[0]; }
-            var nowHour = new Date().getHours();
-            if (nowHour > 11 && nowHour < 18) {
-                returnText = "네 안녕하세요 " + sender + "님! 오늘도 좋은 하루 되세요😊😊😊";
-            } else if (nowHour > 17 && nowHour < 20) {
-                returnText = "네 트레이너님! 좋은 저녁이에요ㅎㅎ 저녁 맛있게 드세요~!😋😋😋";
-            } else if (nowHour > 19 || nowHour < 2) {
-                returnText = "네 " + sender + "님! 좋은 밤 되세요~!!😴😴😴";
-            } else if (nowHour > 1 && nowHour < 5) {
-                returnText = "헉 " + sender + "님! 안주무세요!?!? 어서 주무세요!!😱😱😱";
-            } else if (nowHour < 11) {
-                returnText = "안녕하세요 " + sender + "님! 좋은 아침이에요😊😊😊";
-            } else {
-                returnText = "안녕하세요 트레이너님!☺️";
-            }
-        }
-        */
-
-        // TODO : 도움말 (나중에)
-        // TODO : 규칙 (나중에)
-
-        /*
-        if (returnText == "none") {
-            returnText = simpleTalk(msg);
+if (msg.includes('가위바위보')) {
+    msg = msg.replace('가위바위보');
+    if (msg.includes('가위') || msg.includes('바위') || msg.includes('보')) {
+        if (msg.includes('가위')) {
+            returnText = rockPaperScissor('가위')
+        } else if (msg.includes('바위')) {
+            returnText = rockPaperScissor('바위')
+        } else if (msg.includes('보')) {
+            returnText = rockPaperScissor('보')
         }
     }
-    */
+} else if (msg == "나가" || msg == "꺼져") {
+    returnText = "더 잘할게요...ㅠㅠ내쫓지 말아주세요ㅠㅠ";
+}
 
-    /*
-    //정보추가는 이정도로 해두고 현황을 짜보자
-    //ㅁ + 정보는 지금 빠졌다
-    //ㅁ을 붙여서 넣든 아니든 여기까지 오는거임
-    //레이드부터 만들자 -> 일단 DB부터 나눠야됨
+if (msg.includes("주사위")) {
+    var icon = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+    returnText = icon[Math.floor(Math.random() * 6)];
+} else if (msg.includes('랜덤 개체값') || msg.includes('랜덤개체')) {
+    returnText = randomIVGen();
+} else if (msg.includes('로또번호') || msg.includes('로또 번호')) {
+    returnText = randomLottery();
+}
 
-    //아래서만 방을 설정해서 쓰자 (레이드 현황, 출석부 현황)
-    //얘네는 전부다 UniqueDB에 들어가는 아이들이다.
-    var useRoster = 'roster'; var useRaidStatus = 'raidStatus'; var useResearch = 'research';
 
-    var rosterMemoTemp = 'TEMPTEMPTEMPTEMPTEMP';
 
-    //로켓단 제보 할 경우, 자동으로 리서치를 붙여주자
-    if (msg.includes('Sierra') || msg.includes('알로') || msg.includes('클리프') || msg.includes('비주기')) {
-        if (!msg.includes('리서치')) {
-            msg = msg + '리서치';
+if ((msg.includes('한테') || msg.includes('께')) && msg.includes('인사')) {
+    msg = msg.replace("께", "한테"); msg = msg.replace('님', ''); msg = msg.split('한테')[0]; msg = msg.trim();
+    if (msg.includes(' ')) {
+        msg = msg.split(' '); msg = msg[msg.length - 1];
+    }
+    returnText = "안녕하세요 " + msg + "님! 반가워요!!😆😆😆";
+} else if (msg.includes('칭찬')) {
+    var tempMsg = msg.split(' ')[0]; tempMsg.replace('님', '')
+    if (tempMsg == '나' || tempMsg.includes('칭찬')) {
+        returnText = "정말 잘하셨어요!! " + sender + " 칭찬해 😉😉😉";
+    } else {
+        returnText = "정말 잘하셨어요!! " + tempMsg + " 칭찬해 😉😉😉";
+    }
+} else if (msg.includes('축하해')) {
+    var tempMsg = msg.split(' ')[0]; tempMsg.replace('님', '')
+    if (tempMsg == '나' || tempMsg.includes('칭찬')) {
+        returnText = "와!!! 짱이에요!!! " + sender + " 축하해 🤗🤗🤗";
+    } else {
+        returnText = "와!!! 짱이에요!!! " + tempMsg + " 축하해 🤗🤗🤗";
+    }
+} else if (msg.includes('위로')) {
+    var tempMsg = msg.split(' ')[0]; tempMsg.replace('님', '')
+    if (tempMsg == '나' || tempMsg.includes('위로')) {
+        returnText = "아쉽네요ㅠㅠ " + sender + " 위로해 😢😢😢";
+    } else {
+        returnText = "아쉽네요ㅠㅠ " + tempMsg + " 위로해 😢😢😢";
+    }
+}
+if (msg.includes('모닝') && (msg.includes('스테') || msg.includes('스태'))) {
+    msg = 'none';
+}
+
+if (msg.includes('잘자') || msg.includes('굿밤') || msg.includes('굿나잇') || msg.includes('좋은밤') || msg.includes('좋은 밤')) {
+    if (sender.includes("/")) { sender = sender.split('/')[0]; }
+    returnText = sender + "님 " + keyToText("GOODBYE", "hello");
+} else if (msg.includes('좋은 아침') || msg.includes('굿모닝') || msg.includes('좋은아침') || msg.includes('잘잤어?')) {
+    returnText = sender + "님 " + keyToText("GOODMORNING", "hello");
+} else if ((msg.includes('잘했어') || msg.includes('최고') || msg.includes('짱') || msg.includes('수고') || msg.includes('고마')) && !returnText.includes('짱')) {
+    returnText = keyToText("GOODJOB", "hello");
+}
+
+if (msg.includes('아침') && (msg.includes('뭐') || msg.includes('추천'))) {
+    returnText = keyToText("BREAKFAST", "food");
+} else if (msg.includes('점심')) {
+    returnText = keyToText("LUNCH", "food");
+} else if (msg.includes('저녁')) {
+    returnText = keyToText("DINNER", "food");
+} else if (msg.includes('간식')) {
+    returnText = keyToText("SNACK", "food");
+} else if (msg.includes('야식')) {
+    returnText = keyToText("LATENIGHT", "food");
+} else if ((msg.includes(' 술') || msg[0] == '술' || msg.includes('안주')) && (!msg.includes('비구술')) && (!msg.includes('기술'))) {
+    returnText = keyToText("ALCOHOL", "food");
+} else if (msg.includes('밥')) {
+    returnText = keyToText("FOOD", "food");
+}
+
+
+
+
+if (msg.includes('뭐하니') || msg.includes('뭐해')) { returnText = '트레이너분들의 말을 기다리고 있어요!'; }
+if (msg.includes('바보') || msg.includes('멍청이')) {
+    switch (Math.floor(Math.random() * 11)) {
+        case 0:
+            returnText = '아 바보 아니라고;;'; break;
+        case 1:
+            returnText = '아니에요ㅡㅡ매일매일 진화하고 있는걸요!'; break;
+        case 2:
+            returnText = '뭐'; break;
+        case 3:
+            returnText = '바보 아닌데ㅠ...😥'; break;
+        case 4:
+            returnText = '그럼 잘 알려주던가!'; break;
+        case 5:
+            returnText = '아니라구ㅠ'; break;
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+            returnText = '(훌쩍)바보 아닌데...'; break;
+        case 10:
+            returnText = '😥바보 아닌데...'; break;
+    }
+}
+if (msg.includes('이쁜짓') || msg.includes('애교') || msg.includes('예쁜짓')) {
+
+    switch (Math.floor(Math.random() * 14)) {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+            returnText = "(심각)";
+            break;
+        case 7:
+        case 8:
+        case 9:
+            returnText = "(showoff)";
+            break;
+        case 11:
+            returnText = "왜 함 그걸";
+            break;
+        case 12:
+            returnText = "(angry)";
+            break;
+        case 13:
+            returnText = "웩";
+            break;
+        case 14:
+            returnText = "도리도리 >_<";
+            break;
+    }
+}
+if (msg.includes('안녕')) {
+    if (sender.includes("/")) { sender = sender.split('/')[0]; }
+    var nowHour = new Date().getHours();
+    if (nowHour > 11 && nowHour < 18) {
+        returnText = "네 안녕하세요 " + sender + "님! 오늘도 좋은 하루 되세요😊😊😊";
+    } else if (nowHour > 17 && nowHour < 20) {
+        returnText = "네 트레이너님! 좋은 저녁이에요ㅎㅎ 저녁 맛있게 드세요~!😋😋😋";
+    } else if (nowHour > 19 || nowHour < 2) {
+        returnText = "네 " + sender + "님! 좋은 밤 되세요~!!😴😴😴";
+    } else if (nowHour > 1 && nowHour < 5) {
+        returnText = "헉 " + sender + "님! 안주무세요!?!? 어서 주무세요!!😱😱😱";
+    } else if (nowHour < 11) {
+        returnText = "안녕하세요 " + sender + "님! 좋은 아침이에요😊😊😊";
+    } else {
+        returnText = "안녕하세요 트레이너님!☺️";
+    }
+}
+*/
+
+// TODO : 도움말 (나중에)
+// TODO : 규칙 (나중에)
+
+/*
+if (returnText == "none") {
+    returnText = simpleTalk(msg);
+}
+}
+*/
+
+/*
+//정보추가는 이정도로 해두고 현황을 짜보자
+//ㅁ + 정보는 지금 빠졌다
+//ㅁ을 붙여서 넣든 아니든 여기까지 오는거임
+//레이드부터 만들자 -> 일단 DB부터 나눠야됨
+
+//아래서만 방을 설정해서 쓰자 (레이드 현황, 출석부 현황)
+//얘네는 전부다 UniqueDB에 들어가는 아이들이다.
+var useRoster = 'roster'; var useRaidStatus = 'raidStatus'; var useResearch = 'research';
+
+var rosterMemoTemp = 'TEMPTEMPTEMPTEMPTEMP';
+
+//로켓단 제보 할 경우, 자동으로 리서치를 붙여주자
+if (msg.includes('Sierra') || msg.includes('알로') || msg.includes('클리프') || msg.includes('비주기')) {
+    if (!msg.includes('리서치')) {
+        msg = msg + '리서치';
+    }
+}
+
+// TODO : 레이드 모집 (나중에)
+
+//출석부 현황을 보여주는 것 -> 팟 현황 or 출석부 현황
+
+//출석부 사전 준비 + 오타 수정
+*/
+
+/*
+msg = msg.replace('출석부', '팟');
+
+
+if (msg.includes('\n>') || msg.includes('\n-')) {
+    msg = msg.replace('\n-', '\n>');
+    if (msg.includes('팟') || msg.includes('연타')) {
+        rosterMemoTemp = msg.split('\n>')[1];
+        msg = msg.split('\n>')[0];
+    }
+    if (msg.includes('내용변경')) {
+        //메모찾아서 트리거 올려두기
+    }
+    if (msg.includes('메모변경')) {
+        rosterMemoTemp = msg.split('\n>')[1];
+        msg = msg.split('\n>')[0];
+    }
+}
+
+
+
+if (msg.includes('연타') && !msg.includes('팟')) {
+    msg = msg + ' 팟';
+}
+
+if (msg.includes('게정')) {
+    msg = msg.replace('게정', '계정');
+}
+if (msg.includes('계졍')) {
+    msg = msg.replace('계졍', '계정');
+}
+if (msg.includes('컬러풀')) {
+    msg = msg.replace('컬러풀', '컬러플');
+}
+
+if (msg.includes('빠질께') || msg.includes('빠질꼐') || msg.includes('빠질계')) {
+    msg = msg.replace('빠질께', '빠질게');
+    msg = msg.replace('빠질꼐', '빠질게');
+    msg = msg.replace('빠질계', '빠질게');
+}
+
+
+
+while (msg.includes('  ')) {
+    msg = msg.replace('  ', ' ');
+}
+
+if (hasNumber(msg[msg.indexOf('번만') - 1])) {
+    if (!msg.includes('연타')) {
+        msg = msg.replace('참석', '연타 참석');
+    }
+}
+
+//출석부 시작
+//출석부 시간체크
+
+if (msg.includes('팟')) {
+    checkTime(useRoster); // 시간 지난 것 삭제
+    if (msg.includes('현황')) {
+        if ((UniqueDB.readData(useRoster) + ' ').includes(',')) {
+            printRoster(UniqueDB.readData(useRoster), replier); return;
+        } else { returnText = '팟이 없네요! 직접 만들어보는건 어떨까요?\nex) 3시 20분 작은분수 2계정 팟 생성' }
+        msg = 'none';
+    } else if (msg.includes('생성')) {
+        returnText = createRoster(useRoster, sender, msg, rosterMemoTemp);
+    } else if (msg.includes('리셋')) {
+        returnText = rosterReset(useRoster);
+    } else if (msg.includes('펑') || msg.includes('취소') || msg.includes('삭제')) {
+        msg = msg.replace('삭제해줘', '펑'); msg = msg.replace('삭제', '펑'); msg = msg.replace('취소', '펑');
+        if (!msg.includes('팟 펑')) {
+            msg = msg.replace('팟', ''); msg = msg.replace('펑', ''); msg = msg.replace('  ', ''); msg.trim(); msg = msg + '팟 펑';
         }
+        returnText = deleteRoster(useRoster, msg);
     }
-
-    // TODO : 레이드 모집 (나중에)
-
-    //출석부 현황을 보여주는 것 -> 팟 현황 or 출석부 현황
-
-    //출석부 사전 준비 + 오타 수정
-    */
-
-    /*
-    msg = msg.replace('출석부', '팟');
-
-
-    if (msg.includes('\n>') || msg.includes('\n-')) {
-        msg = msg.replace('\n-', '\n>');
-        if (msg.includes('팟') || msg.includes('연타')) {
-            rosterMemoTemp = msg.split('\n>')[1];
-            msg = msg.split('\n>')[0];
-        }
-        if (msg.includes('내용변경')) {
-            //메모찾아서 트리거 올려두기
-        }
-        if (msg.includes('메모변경')) {
-            rosterMemoTemp = msg.split('\n>')[1];
-            msg = msg.split('\n>')[0];
-        }
+} else if (msg.includes('변경')) {
+    if (msg.includes('내용')) {
+        changeRosterContent(useRoster, msg, replier);
+    } else if (msg.includes('시간')) {
+        changeRosterTime(useRoster, msg, replier);
     }
+}
 
 
 
-    if (msg.includes('연타') && !msg.includes('팟')) {
-        msg = msg + ' 팟';
+if (msg.includes('명단')) {
+    if (msg.includes('추가')) {
+        addPersonToRoster(useRoster, msg, replier);
+    } else if (msg.includes('제거')) {
+        delPersonFromRoster(useRoster, msg, replier);
     }
+} else if (msg.includes('팟')) {
+    msg = msg.replace('팟', ''); msg = msg.replace('  ', ' '); msg.trim();
+}
 
-    if (msg.includes('게정')) {
-        msg = msg.replace('게정', '계정');
+if (msg.includes('연타') && msg.includes('추가')) {
+    addConsecRoster(useRoster, sender, msg, replier);
+}
+
+if (hasNumber(msg[msg.indexOf('번만') - 1])) {
+    if (!msg.includes('연타')) {
+        msg = msg.replace('참석', '연타 참석');
     }
-    if (msg.includes('계졍')) {
-        msg = msg.replace('계졍', '계정');
-    }
-    if (msg.includes('컬러풀')) {
-        msg = msg.replace('컬러풀', '컬러플');
-    }
+}
 
-    if (msg.includes('빠질께') || msg.includes('빠질꼐') || msg.includes('빠질계')) {
-        msg = msg.replace('빠질께', '빠질게');
-        msg = msg.replace('빠질꼐', '빠질게');
-        msg = msg.replace('빠질계', '빠질게');
-    }
+if (msg.includes('빠질게')) {
+    getOutFromRoster(useRoster, sender, msg, replier);
+} else if (msg.includes('참석') || msg.includes('참가') || msg.includes('참여')) {
+    participateRoster(useRoster, msg, sender, replier);
+}
+//출석부 끝
 
-
-
-    while (msg.includes('  ')) {
-        msg = msg.replace('  ', ' ');
-    }
-
-    if (hasNumber(msg[msg.indexOf('번만') - 1])) {
-        if (!msg.includes('연타')) {
-            msg = msg.replace('참석', '연타 참석');
-        }
-    }
-
-    //출석부 시작
-    //출석부 시간체크
-
-    if (msg.includes('팟')) {
-        checkTime(useRoster); // 시간 지난 것 삭제
-        if (msg.includes('현황')) {
-            if ((UniqueDB.readData(useRoster) + ' ').includes(',')) {
-                printRoster(UniqueDB.readData(useRoster), replier); return;
-            } else { returnText = '팟이 없네요! 직접 만들어보는건 어떨까요?\nex) 3시 20분 작은분수 2계정 팟 생성' }
-            msg = 'none';
-        } else if (msg.includes('생성')) {
-            returnText = createRoster(useRoster, sender, msg, rosterMemoTemp);
-        } else if (msg.includes('리셋')) {
-            returnText = rosterReset(useRoster);
-        } else if (msg.includes('펑') || msg.includes('취소') || msg.includes('삭제')) {
-            msg = msg.replace('삭제해줘', '펑'); msg = msg.replace('삭제', '펑'); msg = msg.replace('취소', '펑');
-            if (!msg.includes('팟 펑')) {
-                msg = msg.replace('팟', ''); msg = msg.replace('펑', ''); msg = msg.replace('  ', ''); msg.trim(); msg = msg + '팟 펑';
-            }
-            returnText = deleteRoster(useRoster, msg);
-        }
-    } else if (msg.includes('변경')) {
-        if (msg.includes('내용')) {
-            changeRosterContent(useRoster, msg, replier);
-        } else if (msg.includes('시간')) {
-            changeRosterTime(useRoster, msg, replier);
-        }
-    }
-
-
-
-    if (msg.includes('명단')) {
-        if (msg.includes('추가')) {
-            addPersonToRoster(useRoster, msg, replier);
-        } else if (msg.includes('제거')) {
-            delPersonFromRoster(useRoster, msg, replier);
-        }
-    } else if (msg.includes('팟')) {
-        msg = msg.replace('팟', ''); msg = msg.replace('  ', ' '); msg.trim();
-    }
-
-    if (msg.includes('연타') && msg.includes('추가')) {
-        addConsecRoster(useRoster, sender, msg, replier);
-    }
-
-    if (hasNumber(msg[msg.indexOf('번만') - 1])) {
-        if (!msg.includes('연타')) {
-            msg = msg.replace('참석', '연타 참석');
-        }
-    }
-
-    if (msg.includes('빠질게')) {
-        getOutFromRoster(useRoster, sender, msg, replier);
-    } else if (msg.includes('참석') || msg.includes('참가') || msg.includes('참여')) {
-        participateRoster(useRoster, msg, sender, replier);
-    }
-    //출석부 끝
-
-    //레이드 알 제보 현황 시작 & 리서치 아닌 것
+//레이드 알 제보 현황 시작 & 리서치 아닌 것
+if (msg.includes('남음') && msg.includes('분') && hasNumber(msg[msg.indexOf('분') - 1])) {
+    //어디 교회 40분 남음
+    //3시 몇분 어디 교회 제보 ->로 변경
+    msg = raidRemainingConvert(msg);
+} else if (msg.includes('분수')) {
+    msg = msg.replace('분수', '부부부븐수');
     if (msg.includes('남음') && msg.includes('분') && hasNumber(msg[msg.indexOf('분') - 1])) {
         //어디 교회 40분 남음
         //3시 몇분 어디 교회 제보 ->로 변경
         msg = raidRemainingConvert(msg);
-    } else if (msg.includes('분수')) {
-        msg = msg.replace('분수', '부부부븐수');
-        if (msg.includes('남음') && msg.includes('분') && hasNumber(msg[msg.indexOf('분') - 1])) {
-            //어디 교회 40분 남음
-            //3시 몇분 어디 교회 제보 ->로 변경
-            msg = raidRemainingConvert(msg);
-        }
-        msg = msg.replace('부부부븐수', '분수');
     }
+    msg = msg.replace('부부부븐수', '분수');
+}
 
 
-    msg = msg.replace('세븐일래븐', '711'); msg = msg.replace('세븐일레븐', '711');
-    msg = msg.replace('새븐일레븐', '711');
-    msg = msg.replace('새븐일래븐', '711'); msg = msg.replace('TWORLD', '티월드');
-    msg = msg.replace('Tworld', '티월드');
-    msg = msg.replace('T World', '티월드'); msg = msg.replace('T world', '티월드');
+msg = msg.replace('세븐일래븐', '711'); msg = msg.replace('세븐일레븐', '711');
+msg = msg.replace('새븐일레븐', '711');
+msg = msg.replace('새븐일래븐', '711'); msg = msg.replace('TWORLD', '티월드');
+msg = msg.replace('Tworld', '티월드');
+msg = msg.replace('T World', '티월드'); msg = msg.replace('T world', '티월드');
 
-    msg = msg.replace('레이드 정보', '현황');
+msg = msg.replace('레이드 정보', '현황');
 
-    msg = msg.trim();
-    */
+msg = msg.trim();
+*/
 
 
-    /*
-    roomNameForPrint = room;
-    if (!room.includes('강남구 포켓몬고 레이드 제보 방')) {
-        if (msg.includes("현황") && msg.includes("전체")) {
-            roomNameForPrint = '전체';
-            returnText = raidReportReturn('raidStatus', null, null);
-        } else if (msg.includes("현황") && !msg.includes("리서치")) {
-            returnText = raidReportReturn(useRaidStatus, null, null);
-            raidReportReturn("raidStatus", null, null);
-        } else if (msg == "전체 제보 리셋") {
-            returnText = '[강남구 전체] ' + raidReportReturn("raidStatus", null, "DELETE ALL");
-        } else if (msg == "제보 리셋" || msg == "제보 리셋해줘") {
-            returnText = raidReportReturn(useRaidStatus, null, "DELETE ALL");
-        } else if (msg.includes("제보 변경:") || msg.includes("제보변경:")) {
-            returnText = raidReportChange(useRaidStatus, msg, null);
-            raidReportChange('raidStatus', msg, null);
-            msg = msg.replace("제보", "")
-        } else if ((msg.includes('삭제해줘') || msg.includes('제보삭제') || msg.includes('제보 삭제') || msg.includes('삭제 해줘') || msg.includes('오보') || msg.includes("끝났어") || msg.includes("만료")) && !msg.includes("리서치")) {
-            //여기가 가장 중요한 부분
-            msg = msg.replace('제보삭제', ''); msg = msg.replace('제보 삭제', '');
-            msg = msg.replace('시간만료', ''); msg = msg.replace('끝났어', ''); msg = msg.replace('만료', '');
-            msg = msg.replace('삭제해줘', ''); msg = msg.replace('오보', '');
+/*
+roomNameForPrint = room;
+if (!room.includes('강남구 포켓몬고 레이드 제보 방')) {
+    if (msg.includes("현황") && msg.includes("전체")) {
+        roomNameForPrint = '전체';
+        returnText = raidReportReturn('raidStatus', null, null);
+    } else if (msg.includes("현황") && !msg.includes("리서치")) {
+        returnText = raidReportReturn(useRaidStatus, null, null);
+        raidReportReturn("raidStatus", null, null);
+    } else if (msg == "전체 제보 리셋") {
+        returnText = '[강남구 전체] ' + raidReportReturn("raidStatus", null, "DELETE ALL");
+    } else if (msg == "제보 리셋" || msg == "제보 리셋해줘") {
+        returnText = raidReportReturn(useRaidStatus, null, "DELETE ALL");
+    } else if (msg.includes("제보 변경:") || msg.includes("제보변경:")) {
+        returnText = raidReportChange(useRaidStatus, msg, null);
+        raidReportChange('raidStatus', msg, null);
+        msg = msg.replace("제보", "")
+    } else if ((msg.includes('삭제해줘') || msg.includes('제보삭제') || msg.includes('제보 삭제') || msg.includes('삭제 해줘') || msg.includes('오보') || msg.includes("끝났어") || msg.includes("만료")) && !msg.includes("리서치")) {
+        //여기가 가장 중요한 부분
+        msg = msg.replace('제보삭제', ''); msg = msg.replace('제보 삭제', '');
+        msg = msg.replace('시간만료', ''); msg = msg.replace('끝났어', ''); msg = msg.replace('만료', '');
+        msg = msg.replace('삭제해줘', ''); msg = msg.replace('오보', '');
 
-            returnText = raidReportReturn(useRaidStatus, null, msg);
-            raidReportReturn('raidStatus', null, msg);
-            //replier.reply(msg + " 제보가 삭제 되었습니다.");        
-        } if ((msg.includes("시") || msg.includes(":")) && msg.includes("제보") && !msg.includes("리서치")) {
-            if (msg.includes('1시') || msg.includes('2시') || msg.includes('3시') || msg.includes('4시') || msg.includes('5시') || msg.includes('6시') || msg.includes('7시') || msg.includes('8시') || msg.includes('9시') || msg.includes('10시') || msg.includes('11시') || msg.includes('12시') || msg.includes('1:') || msg.includes('2:') || msg.includes('3:') || msg.includes('4:') || msg.includes('5:') || msg.includes('6:') || msg.includes('7:') || msg.includes('8:') || msg.includes('9:') || msg.includes('10:') || msg.includes('11:') || msg.includes('12:')) {
-                //무식하지만 이렇게 하자...
-                //여기서 제보가 많다면!?
-                if (msg.includes('\n')) {
-                    //이거 이정도면 함수로 뺴야겠는데
-                    //테스트는 내일!
-                    var dummyDivide = msg.split('\n');
-                    for (var i = 0; i < dummyDivide.length; i++) {
-                        raidReportReturn(useRaidStatus, dummyDivide[i], null);
-                        raidReportReturn('raidStatus', dummyDivide[i], null);
-                    }
-                    returnText = raidReportReturn(useRaidStatus, null, null);
-                    raidReportReturn('raidStatus', null, null);
-                } else {
-                    returnText = raidReportReturn(useRaidStatus, msg, null);
-                    raidReportReturn('raidStatus', msg, null);
+        returnText = raidReportReturn(useRaidStatus, null, msg);
+        raidReportReturn('raidStatus', null, msg);
+        //replier.reply(msg + " 제보가 삭제 되었습니다.");        
+    } if ((msg.includes("시") || msg.includes(":")) && msg.includes("제보") && !msg.includes("리서치")) {
+        if (msg.includes('1시') || msg.includes('2시') || msg.includes('3시') || msg.includes('4시') || msg.includes('5시') || msg.includes('6시') || msg.includes('7시') || msg.includes('8시') || msg.includes('9시') || msg.includes('10시') || msg.includes('11시') || msg.includes('12시') || msg.includes('1:') || msg.includes('2:') || msg.includes('3:') || msg.includes('4:') || msg.includes('5:') || msg.includes('6:') || msg.includes('7:') || msg.includes('8:') || msg.includes('9:') || msg.includes('10:') || msg.includes('11:') || msg.includes('12:')) {
+            //무식하지만 이렇게 하자...
+            //여기서 제보가 많다면!?
+            if (msg.includes('\n')) {
+                //이거 이정도면 함수로 뺴야겠는데
+                //테스트는 내일!
+                var dummyDivide = msg.split('\n');
+                for (var i = 0; i < dummyDivide.length; i++) {
+                    raidReportReturn(useRaidStatus, dummyDivide[i], null);
+                    raidReportReturn('raidStatus', dummyDivide[i], null);
                 }
-            }
-        }
-    } else {
-        if (msg.includes("현황") && msg.includes("전체")) {
-            roomNameForPrint = '전체';
-            returnText = raidReportReturn('raidStatus', null, null);
-
-        } else if (msg.includes("현황") && !msg.includes("리서치")) {
-            returnText = raidReportReturn(useRaidStatus, null, null);
-        } else if (msg == "제보 리셋" || msg == "제보 리셋해줘") {
-            returnText = raidReportReturn(useRaidStatus, null, "DELETE ALL");
-        } else if (msg.includes("제보 변경:") || msg.includes("제보변경:")) {
-            returnText = raidReportChange(useRaidStatus, msg, null);
-            msg = msg.replace("제보", "")
-        } else if ((msg.includes('삭제해줘') || msg.includes('제보삭제') || msg.includes('제보 삭제') || msg.includes('삭제 해줘') || msg.includes('오보') || msg.includes("끝났어") || msg.includes("만료")) && !msg.includes("리서치")) {
-            //여기가 가장 중요한 부분
-            msg = msg.replace('제보삭제', ''); msg = msg.replace('제보 삭제', '');
-            msg = msg.replace('시간만료', ''); msg = msg.replace('끝났어', ''); msg = msg.replace('만료', '');
-            msg = msg.replace('삭제해줘', ''); msg = msg.replace('오보', '');
-
-            returnText = raidReportReturn(useRaidStatus, null, msg);
-            //replier.reply(msg + " 제보가 삭제 되었습니다.");        
-        } if ((msg.includes("시") || msg.includes(":")) && msg.includes("제보") && !msg.includes("리서치")) {
-            if (msg.includes('1시') || msg.includes('2시') || msg.includes('3시') || msg.includes('4시') || msg.includes('5시') || msg.includes('6시') || msg.includes('7시') || msg.includes('8시') || msg.includes('9시') || msg.includes('10시') || msg.includes('11시') || msg.includes('12시') || msg.includes('1:') || msg.includes('2:') || msg.includes('3:') || msg.includes('4:') || msg.includes('5:') || msg.includes('6:') || msg.includes('7:') || msg.includes('8:') || msg.includes('9:') || msg.includes('10:') || msg.includes('11:') || msg.includes('12:')) {
-                //무식하지만 이렇게 하자...
-                //여기서 제보가 많다면!?
-                if (msg.includes('\n')) {
-                    //이거 이정도면 함수로 뺴야겠는데
-                    //테스트는 내일!
-                    var dummyDivide = msg.split('\n');
-                    for (var i = 0; i < dummyDivide.length; i++) {
-                        raidReportReturn(useRaidStatus, dummyDivide[i], null);
-                    }
-                    returnText = raidReportReturn(useRaidStatus, null, null);
-                } else {
-                    returnText = raidReportReturn(useRaidStatus, msg, null);
-                }
+                returnText = raidReportReturn(useRaidStatus, null, null);
+                raidReportReturn('raidStatus', null, null);
+            } else {
+                returnText = raidReportReturn(useRaidStatus, msg, null);
+                raidReportReturn('raidStatus', msg, null);
             }
         }
     }
-    */
+} else {
+    if (msg.includes("현황") && msg.includes("전체")) {
+        roomNameForPrint = '전체';
+        returnText = raidReportReturn('raidStatus', null, null);
 
-    /*
-    //리서치 시작
-    //이전에 바꿔둔것 바꾸기
-    msg = msg.replace('Sierra', '시에라');
-    if (msg.includes("리서치") && msg.includes("제보")) {
-        msg = msg.replace("제보", ""); msg = msg.replace("리서치", ""); msg = msg.trim();
-        returnText = researchReturn(useResearch, msg);
-    } else if (msg.includes('리서치') && (msg.includes('삭제해줘')) || msg.includes('오보') || msg.includes('삭제 해줘') || msg.includes('리서치 삭제')) {
-        returnText = deleteResearch(useResearch, msg);
-    } else if (msg == "리서치 리셋" || msg == "리서치 리셋해줘") {
-        returnText = raidReportReturn(useResearch, null, "DELETE ALL");
-    } else if (msg.includes("리서치 목록") || (msg.includes('리서치') && msg.includes('현황'))) {
-        returnText = raidReportReturn(useResearch, null, null);
-        msg = "끝났어!";
+    } else if (msg.includes("현황") && !msg.includes("리서치")) {
+        returnText = raidReportReturn(useRaidStatus, null, null);
+    } else if (msg == "제보 리셋" || msg == "제보 리셋해줘") {
+        returnText = raidReportReturn(useRaidStatus, null, "DELETE ALL");
+    } else if (msg.includes("제보 변경:") || msg.includes("제보변경:")) {
+        returnText = raidReportChange(useRaidStatus, msg, null);
+        msg = msg.replace("제보", "")
+    } else if ((msg.includes('삭제해줘') || msg.includes('제보삭제') || msg.includes('제보 삭제') || msg.includes('삭제 해줘') || msg.includes('오보') || msg.includes("끝났어") || msg.includes("만료")) && !msg.includes("리서치")) {
+        //여기가 가장 중요한 부분
+        msg = msg.replace('제보삭제', ''); msg = msg.replace('제보 삭제', '');
+        msg = msg.replace('시간만료', ''); msg = msg.replace('끝났어', ''); msg = msg.replace('만료', '');
+        msg = msg.replace('삭제해줘', ''); msg = msg.replace('오보', '');
+
+        returnText = raidReportReturn(useRaidStatus, null, msg);
+        //replier.reply(msg + " 제보가 삭제 되었습니다.");        
+    } if ((msg.includes("시") || msg.includes(":")) && msg.includes("제보") && !msg.includes("리서치")) {
+        if (msg.includes('1시') || msg.includes('2시') || msg.includes('3시') || msg.includes('4시') || msg.includes('5시') || msg.includes('6시') || msg.includes('7시') || msg.includes('8시') || msg.includes('9시') || msg.includes('10시') || msg.includes('11시') || msg.includes('12시') || msg.includes('1:') || msg.includes('2:') || msg.includes('3:') || msg.includes('4:') || msg.includes('5:') || msg.includes('6:') || msg.includes('7:') || msg.includes('8:') || msg.includes('9:') || msg.includes('10:') || msg.includes('11:') || msg.includes('12:')) {
+            //무식하지만 이렇게 하자...
+            //여기서 제보가 많다면!?
+            if (msg.includes('\n')) {
+                //이거 이정도면 함수로 뺴야겠는데
+                //테스트는 내일!
+                var dummyDivide = msg.split('\n');
+                for (var i = 0; i < dummyDivide.length; i++) {
+                    raidReportReturn(useRaidStatus, dummyDivide[i], null);
+                }
+                returnText = raidReportReturn(useRaidStatus, null, null);
+            } else {
+                returnText = raidReportReturn(useRaidStatus, msg, null);
+            }
+        }
     }
+}
+*/
 
-    
-    */
+/*
+//리서치 시작
+//이전에 바꿔둔것 바꾸기
+msg = msg.replace('Sierra', '시에라');
+if (msg.includes("리서치") && msg.includes("제보")) {
+    msg = msg.replace("제보", ""); msg = msg.replace("리서치", ""); msg = msg.trim();
+    returnText = researchReturn(useResearch, msg);
+} else if (msg.includes('리서치') && (msg.includes('삭제해줘')) || msg.includes('오보') || msg.includes('삭제 해줘') || msg.includes('리서치 삭제')) {
+    returnText = deleteResearch(useResearch, msg);
+} else if (msg == "리서치 리셋" || msg == "리서치 리셋해줘") {
+    returnText = raidReportReturn(useResearch, null, "DELETE ALL");
+} else if (msg.includes("리서치 목록") || (msg.includes('리서치') && msg.includes('현황'))) {
+    returnText = raidReportReturn(useResearch, null, null);
+    msg = "끝났어!";
+}
 
-    //끝
+ 
+*/
+
+//끝
 /*
     if (returnText != "none")
     {
@@ -3407,12 +3429,9 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 }
 */
 
-function onStartCompile()
-{
-    /*컴파일 또는 Api.reload호출시, 컴파일 되기 이전에 호출되는 함수입니다.
-     *제안하는 용도: 리로드시 자동 백업*/
-
-    
+function onStartCompile() {
+    // 컴파일 또는 Api.reload호출시, 컴파일 되기 이전에 호출되는 함수입니다.
+    // 제안하는 용도 : 리로드시 자동 백업
 }
 
 //아래 4개의 메소드는 액티비티 화면을 수정할때 사용됩니다.
@@ -3424,6 +3443,7 @@ function onCreate(savedInstanceState, activity) {
     layout.addView(txt);
     activity.setContentView(layout);
 }
+
 function onResume(activity) { }
 function onPause(activity) { }
 function onStop(activity) { }
