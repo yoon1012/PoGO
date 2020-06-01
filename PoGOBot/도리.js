@@ -11,7 +11,10 @@ const sdcard = android.os.Environment.getExternalStorageDirectory().getAbsoluteP
 const DoriDB = {}; const preChat = {}; const lastSender = {}; const botOn = {}; const basicDB = "basic";
 const UniqueDB = {};
 
+// TODO : 변수명 변경 (나중에)
 var currentTime = new Date();
+var currentMillis = currentTime.getTime();
+var currentYear = currentTime.getFullYear();
 var currentHour = currentTime.getHours();
 var currentMinute = currentTime.getMinutes();
 var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + "일";
@@ -31,8 +34,57 @@ RaidReportManager.getRaidReports = function () {
     return "레이드 제보";
 }
 
-RaidReportManager.addRaidReports = function (raidReportString) {
-    return 0;
+RaidReportManager.addRaidReports = function (msg) {
+
+    if (!msg.endsWith("제보")) {
+        return -1;
+    }
+
+    var raidReportStrings = msg.split("\n");
+    var addedRaidReportCount = 0;
+
+    for (var i = 0; i < raidReportStrings.length; i++) {
+        var raidReportString = raidReportStrings[i];
+
+        // 문자열 끝의 제보를 제거
+        if (raidReportString.endsWith(" 제보")) {
+            raidReportString = raidReportString.substring(0, raidReportString.length - 3);
+        }
+
+        var raidReportTokens = raidReportString.split(" ");
+
+        // 시간
+        const timeString = raidReportTokens[0];
+        const time = parseInt(timeString);
+
+        if (isNaN(time) || timeString.length != 4) {
+            continue;
+        }
+
+        // TODO : 시작 시간 예외 처리
+
+        // TODO : 시작 시간 계산
+
+        // TODO : 종료 시간 계산
+
+        // 난이도
+        var hasLevel = true;
+        const levelString = raidReportTokens[raidReportTokens.length - 1];
+
+        var level = parseInt(levelString.substring(0, levelString.length - 1));
+
+        if (!levelString.endsWith("성") || isNaN(level) || level <= 0 || level >= 7) {
+            hasLevel = false;
+            level = 5;
+        }
+
+        // TODO : 체육관 이름
+        // TODO : 파일에 저장
+
+        Log.i("Time : " + time + " Level : " + level, false);
+    }
+
+    return addedRaidReportCount;
 }
 
 /*DoriDB 객체*/
@@ -2477,10 +2529,17 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         return;
     }
 
-    // TODO : 운영진 등록 기능 (나중에)
+    // TODO : 운영진 등록 기능 (아주 나중에)
 
     // [운영진 전용]
     // 모두리셋
+
+    // TODO : 제보 초기화
+
+    // TODO : 리서치 초기화 (아주 나중에)
+    // TODO : 로켓단 초기화 (아주 나중에)
+    // TODO : 모집 글 초기화 (아주 나중에)
+
     if (msg == "모두리셋" || msg == "모두 리셋") {
         RaidReportManager.deleteRaidReports();
         replier.reply("제보와 모집 글을 초기화했습니다.");
@@ -2489,11 +2548,9 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
     // 유지시간변경
 
-    // TODO : 스탑 및 체육관 검색 (나중에)
-
-    // TODO : 로켓단 제보 (나중에)
-
-    // TODO : 리서치 제보 (나중에)
+    // TODO : 스탑 및 체육관 검색 (아주 나중에)
+    // TODO : 로켓단 제보 (아주 나중에)
+    // TODO : 리서치 제보 (아주 나중에)
 
     // [레이드 제보]
     // 현황
@@ -2503,7 +2560,7 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     }
 
     // 제보
-    if (msg.endsWith("제보")) {
+    if (msg.endsWith(" 제보")) {
         var addedRaidReportCount = RaidReportManager.addRaidReports(msg);
 
         if (addedRaidReportCount == 0) {
@@ -3140,8 +3197,8 @@ if (msg.includes('안녕')) {
 }
 */
 
-// TODO : 도움말 (나중에)
-// TODO : 규칙 (나중에)
+// TODO : 도움말 (아주 나중에)
+// TODO : 규칙 (아주 나중에)
 
 /*
 if (returnText == "none") {
