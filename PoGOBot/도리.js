@@ -34,14 +34,16 @@ RaidReportManager.getRaidReports = function () {
     return "레이드 제보";
 }
 
+// 추가된 제보 개수, 문제 발생 여부 [시간, 체육관, 난이도]
 RaidReportManager.addRaidReports = function (msg) {
-
     if (!msg.endsWith("제보")) {
         return -1;
     }
 
     var raidReportStrings = msg.split("\n");
-    var addedRaidReportCount = 0;
+    var addedReportCount = 0;
+
+    var errorFlag = [false, false, false];
 
     for (var i = 0; i < raidReportStrings.length; i++) {
         var raidReportString = raidReportStrings[i];
@@ -53,38 +55,69 @@ RaidReportManager.addRaidReports = function (msg) {
 
         var raidReportTokens = raidReportString.split(" ");
 
-        // 시간
+        // 시간 처리
         const timeString = raidReportTokens[0];
         const time = parseInt(timeString);
 
         if (isNaN(time) || timeString.length != 4) {
+            errorFlag[0] = true;
             continue;
         }
 
         // TODO : 시작 시간 예외 처리
-
         // TODO : 시작 시간 계산
-
         // TODO : 종료 시간 계산
 
-        // 난이도
-        var hasLevel = true;
-        const levelString = raidReportTokens[raidReportTokens.length - 1];
+        // 띄어쓰기가 허용된 횟수보다 많음 → 체육관 이름 오류
+        if (raidReportTokens.length < 2 || raidReportTokens.length > 3) {
+            errorFlag[1] = true;
+            continue;
+        }
 
+        // 난이도 처리
+        const levelString = raidReportTokens[raidReportTokens.length - 1];
         var level = parseInt(levelString.substring(0, levelString.length - 1));
 
-        if (!levelString.endsWith("성") || isNaN(level) || level <= 0 || level >= 7) {
-            hasLevel = false;
+        // 난이도가 없으면 5성으로 처리
+        if (raidReportTokens.length == 2) {
+
+            // 체육관 이름이 빠짐 → 체육관 이름 오류
+            if (!isNaN(level)) {
+                errorFlag[1] = true;
+                continue;
+            }
+
             level = 5;
         }
 
-        // TODO : 체육관 이름
-        // TODO : 파일에 저장
+        if (raidReportTokens.length == 3) {
+            // 난이도가 성으로 끝나지 않음 → 체육관 이름 오류
+            if (!levelString.endsWith("성")) {
+                errorFlag[1] = true;
+                continue;
+            }
+            // 난이도가 숫자로 시작하지 않거나, 1보다 작거나 6보다 큼 → 난이도 오류
+            else if (isNaN(level) || level < 1 || level > 6) {
+                errorFlag[2] = true;
+                continue;
+            }
+        }
+
+        // TODO : 체육관 이름 처리
+        // TODO : 배열에 저장
 
         Log.i("Time : " + time + " Level : " + level, false);
     }
 
-    return addedRaidReportCount;
+    // TODO : 정렬하여 파일에 저장
+
+
+    Log.i("Error : " + errorFlag[0] + " " + errorFlag[1] + " " + errorFlag[2], false);
+    return addedReportCount;
+}
+
+RaidReportManager.addExistingRaidReports = function (msg) {
+
 }
 
 /*DoriDB 객체*/
@@ -2533,20 +2566,19 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
     // [운영진 전용]
     // 모두리셋
-
-    // TODO : 제보 초기화
-
-    // TODO : 리서치 초기화 (아주 나중에)
-    // TODO : 로켓단 초기화 (아주 나중에)
-    // TODO : 모집 글 초기화 (아주 나중에)
-
     if (msg == "모두리셋" || msg == "모두 리셋") {
+
+        // TODO : 제보 초기화
         RaidReportManager.deleteRaidReports();
+
+        // TODO : 리서치 초기화 (아주 나중에)
+        // TODO : 로켓단 초기화 (아주 나중에)
+        // TODO : 모집 글 초기화 (아주 나중에)
         replier.reply("제보와 모집 글을 초기화했습니다.");
         return;
     }
 
-    // 유지시간변경
+    // TODO : 유지시간변경 (45분, 60분, 90분 또는 180분)
 
     // TODO : 스탑 및 체육관 검색 (아주 나중에)
     // TODO : 로켓단 제보 (아주 나중에)
@@ -2555,6 +2587,9 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     // [레이드 제보]
     // 현황
     if (msg == "현황" || msg == "제보 현황") {
+
+        // 지난 레이드 제보 삭제
+
         printRaidReports(replier);
         return;
     }
