@@ -22,28 +22,54 @@ var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + 
 var roomNameForPrint = '도곡';
 
 // TODO : 파일 입출력
+const rootDirectory = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
 
 // 레이드 제보 관리 객체
 const RaidReportManager = {}
 
-RaidReportManager.deleteRaidReports = function () {
+RaidReportManager.deleteReports = function () {
 
 }
 
-RaidReportManager.getRaidReports = function () {
+RaidReportManager.getReports = function () {
     return "레이드 제보";
 }
 
-// 추가된 제보 개수, 문제 발생 여부 [시간, 체육관, 난이도]
-RaidReportManager.addRaidReports = function (msg) {
-    if (!msg.endsWith("제보")) {
+RaidReportManager.addReport = function (reportString) {
+
+}
+
+RaidReportManager.addExistingReport = function (reportString) {
+
+}
+
+RaidReportManager.addReports = function (reportStrings) {
+    const lastReportString = reportStrings[reportStrings.length - 1];
+
+    if (!lastReportString.endsWith(" 제보") && !lastReportString.endsWith(" 남음")) {
         return -1;
     }
 
-    var raidReportStrings = msg.split("\n");
     var addedReportCount = 0;
 
-    var errorFlag = [false, false, false];
+    for (var i = 0; i < reportStrings.length; i++) {
+        var reportString = reportStrings[i];
+
+        var isAdded = false;
+        if (reportString.endsWith(" 제보")) {
+            isAdded = RaidReportManager.addReport(reportString);
+        }
+        else if (reportString.endsWith(" 남음")) {
+            isAdded = RaidReportManager.addReport(reportString);
+        }
+
+        if (isAdded) {
+            addedReportCount++;
+        }
+    }
+
+    /*
+    var raidReportStrings = msg.split("\n");
 
     for (var i = 0; i < raidReportStrings.length; i++) {
         var raidReportString = raidReportStrings[i];
@@ -56,14 +82,15 @@ RaidReportManager.addRaidReports = function (msg) {
         var raidReportTokens = raidReportString.split(" ");
 
         // 시간 처리
-        const timeString = raidReportTokens[0];
-        const time = parseInt(timeString);
+        var timeString = raidReportTokens[0];
+        var time = parseInt(timeString);
 
         if (isNaN(time) || timeString.length != 4) {
             errorFlag[0] = true;
             continue;
         }
 
+        // TODO : 24시간제로 변환
         // TODO : 시작 시간 예외 처리
         // TODO : 시작 시간 계산
         // TODO : 종료 시간 계산
@@ -75,14 +102,15 @@ RaidReportManager.addRaidReports = function (msg) {
         }
 
         // 난이도 처리
-        const levelString = raidReportTokens[raidReportTokens.length - 1];
+        var levelString = raidReportTokens[raidReportTokens.length - 1];
         var level = parseInt(levelString.substring(0, levelString.length - 1));
 
         // 난이도가 없으면 5성으로 처리
         if (raidReportTokens.length == 2) {
+            // Log.i(levelString + " " + raidReportTokens[1]);
 
             // 체육관 이름이 빠짐 → 체육관 이름 오류
-            if (!isNaN(level)) {
+            if (!isNaN(level) && level >= 1 && level <= 6) {
                 errorFlag[1] = true;
                 continue;
             }
@@ -103,21 +131,30 @@ RaidReportManager.addRaidReports = function (msg) {
             }
         }
 
-        // TODO : 체육관 이름 처리
+        // 체육관 이름 처리
+        var gymName = raidReportTokens[1];
+
+        // TODO : 중복 확인
         // TODO : 배열에 저장
 
-        Log.i("Time : " + time + " Level : " + level, false);
+        addedReportCount++;
+        // Log.i("Time : " + time + " Gym Name : " + gymName + " Level : " + level, false);
     }
+    */
 
     // TODO : 정렬하여 파일에 저장
-
-
-    Log.i("Error : " + errorFlag[0] + " " + errorFlag[1] + " " + errorFlag[2], false);
+    // Log.i("Error : " + errorFlag[0] + " " + errorFlag[1] + " " + errorFlag[2], false);
     return addedReportCount;
 }
 
-RaidReportManager.addExistingRaidReports = function (msg) {
+RaidReportManager.printReports = function (replier) {
+    var responseString = RaidReportManager.getReports();
 
+    if (responseString == null || responseString == "") {
+        return;
+    }
+
+    replier.reply(responseString);
 }
 
 /*DoriDB 객체*/
@@ -2531,29 +2568,18 @@ function procCmd(room, cmd, sender, replier) {
     }
 }
 
-function printRaidReports(replier) {
-    var responseString = RaidReportManager.getRaidReports();
-
-    if (responseString == null || responseString == "") {
-        return;
-    }
-
-    replier.reply(responseString);
-}
-
+/**
+ * @description 새로운 메시지를 받으면 호출되는 함수
+ * @param {string} room 메시지를 받은 방의 이름
+ * @param {string} msg 메시지 내용
+ * @param {string} sender 보낸 사람의 닉네임
+ * @param {boolean} isGroupChat 메시지를 받은 방의 그룹 또는 오픈채팅방 여부
+ * @param {string} replier 응답 객체
+ * @param {string} ImageDB 메시지를 보낸 사람의 프로필 이미지
+ * @param {string} packageName 메시지를 받은 메신저의 패키지명
+ * @param {int} threadId 현재 스레드의 id
+ */
 function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName, threadId) {
-    /*
-    (String) room: 메시지를 받은 방 이름
-    (String) msg: 메시지 내용
-    (String) sender: 전송자 닉네임
-    (boolean) isGroupChat: 단체/오픈채팅 여부
-    replier: 응답용 객체. replier.reply("메시지") 또는 replier.reply("방이름","메시지")로 전송
-    (String) ImageDB.getProfileImage(): 전송자의 프로필 이미지를 Base64로 인코딩하여 반환
-    (String) packageName: 메시지를 받은 메신저의 패키지 이름. (카카오톡: com.kakao.talk, 페메: com.facebook.orca, 라인: jp.naver.line.android
-    (int) threadId: 현재 쓰레드의 순번(스크립트별로 따로 매김)
-    Api, Utils객체에 대해서는 설정의 도움말 참조
-    */
-
     var senderName = sender.split('/')[0];
 
     // 테스트
@@ -2590,25 +2616,28 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
         // 지난 레이드 제보 삭제
 
-        printRaidReports(replier);
+        RaidReportManager.printReports(replier);
         return;
     }
 
-    // 제보
-    if (msg.endsWith(" 제보")) {
-        var addedRaidReportCount = RaidReportManager.addRaidReports(msg);
+    // TODO : 제보 or 남음
+    if (msg.endsWith(" 제보") || msg.endsWith(" 남음")) {
+        const reportStrings = msg.split("\n");
 
-        if (addedRaidReportCount == 0) {
-            replier.reply("레이드 제보가 추가되지 않았습니다.");
+        var addedReportCount = RaidReportManager.addReports(reportStrings);
+        if (addedReportCount == 0) {
+            replier.reply("레이드 제보 양식에 맞게 제보해주세요.");
         }
-        else if (addedRaidReportCount > 0) {
-            replier.reply(addedReportCount + "개의 레이드 제보가 추가되었습니다.");
+        else if (addedReportCount > 0) {
+            if (reportStrings.length != addedReportCount) {
+                replier.reply(addedReportCount + "개의 레이드 제보만 추가되었습니다.");
+            }
+
+            RaidReportManager.printReports();
         }
 
         return;
     }
-
-    // 남음
 
     // 제보내용변경
 
