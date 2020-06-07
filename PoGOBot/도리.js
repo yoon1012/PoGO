@@ -34,16 +34,16 @@ RaidReportManager.getRaidReports = function () {
     return "레이드 제보";
 }
 
-// 추가된 제보 개수, 문제 발생 여부 [시간, 체육관, 난이도]
+// 추가된 제보 개수, 문제 발생 플래그 [시간, 체육관, 난이도]
 RaidReportManager.addRaidReports = function (msg) {
+    var addedReportCount = 0;
+    var errorFlag = [false, false, false];
+
     if (!msg.endsWith("제보")) {
         return -1;
     }
 
     var raidReportStrings = msg.split("\n");
-    var addedReportCount = 0;
-
-    var errorFlag = [false, false, false];
 
     for (var i = 0; i < raidReportStrings.length; i++) {
         var raidReportString = raidReportStrings[i];
@@ -56,14 +56,15 @@ RaidReportManager.addRaidReports = function (msg) {
         var raidReportTokens = raidReportString.split(" ");
 
         // 시간 처리
-        const timeString = raidReportTokens[0];
-        const time = parseInt(timeString);
+        var timeString = raidReportTokens[0];
+        var time = parseInt(timeString);
 
         if (isNaN(time) || timeString.length != 4) {
             errorFlag[0] = true;
             continue;
         }
 
+        // TODO : 24시간제로 변환
         // TODO : 시작 시간 예외 처리
         // TODO : 시작 시간 계산
         // TODO : 종료 시간 계산
@@ -75,14 +76,15 @@ RaidReportManager.addRaidReports = function (msg) {
         }
 
         // 난이도 처리
-        const levelString = raidReportTokens[raidReportTokens.length - 1];
+        var levelString = raidReportTokens[raidReportTokens.length - 1];
         var level = parseInt(levelString.substring(0, levelString.length - 1));
 
         // 난이도가 없으면 5성으로 처리
         if (raidReportTokens.length == 2) {
+            // Log.i(levelString + " " + raidReportTokens[1]);
 
             // 체육관 이름이 빠짐 → 체육관 이름 오류
-            if (!isNaN(level)) {
+            if (!isNaN(level) && level >= 1 && level <= 6) {
                 errorFlag[1] = true;
                 continue;
             }
@@ -103,16 +105,18 @@ RaidReportManager.addRaidReports = function (msg) {
             }
         }
 
-        // TODO : 체육관 이름 처리
+        // 체육관 이름 처리
+        var gymName = raidReportTokens[1];
+
+        // TODO : 중복 확인
         // TODO : 배열에 저장
 
-        Log.i("Time : " + time + " Level : " + level, false);
+        addedReportCount++;
+        // Log.i("Time : " + time + " Gym Name : " + gymName + " Level : " + level, false);
     }
 
     // TODO : 정렬하여 파일에 저장
-
-
-    Log.i("Error : " + errorFlag[0] + " " + errorFlag[1] + " " + errorFlag[2], false);
+    // Log.i("Error : " + errorFlag[0] + " " + errorFlag[1] + " " + errorFlag[2], false);
     return addedReportCount;
 }
 
@@ -2596,13 +2600,18 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
     // 제보
     if (msg.endsWith(" 제보")) {
-        var addedRaidReportCount = RaidReportManager.addRaidReports(msg);
+        const intendedCount = msg.split("\n").length;
+        const addedRaidReportCount = RaidReportManager.addRaidReports(msg);
 
         if (addedRaidReportCount == 0) {
-            replier.reply("레이드 제보가 추가되지 않았습니다.");
+            replier.reply("레이드 제보 양식에 맞게 제보해주세요.");
         }
         else if (addedRaidReportCount > 0) {
-            replier.reply(addedReportCount + "개의 레이드 제보가 추가되었습니다.");
+            if (intendedCount != addedRaidReportCount) {
+                replier.reply(addedRaidReportCount + "개의 레이드 제보만 추가되었습니다.");
+            }
+
+            // TODO : 레이드 현황 출력
         }
 
         return;
