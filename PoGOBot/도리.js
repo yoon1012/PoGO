@@ -22,11 +22,12 @@ var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + 
 var roomNameForPrint = '도곡';
 
 const rootDirectory = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
+const dataDirectory = "PoGoBot" + "/";
 
 // 파일 입출력 객체
 const DirectoryIO = {
-    create: function (path, name) {
-        var file = new java.io.File(rootDirectory + path + "/" + name + "/");
+    create: function (path) {
+        var file = new java.io.File(rootDirectory + path + "/");
         file.mkdirs();
     }
 }
@@ -86,11 +87,12 @@ const FileIO = {
 
 // 레이드 제보 관리 객체
 const RaidReportManager = {
-    deleteReports: function () {
-
+    deleteReports: function (replier) {
+        FileIO.write(dataDirectory + "Report", "Raid.txt", "");
     },
 
     getReports: function () {
+        FileIO.write(dataDirectory + "Report", "Raid.txt", "Raid");
         return "레이드 제보";
     },
 
@@ -99,6 +101,10 @@ const RaidReportManager = {
     },
 
     addExistingReport: function (reportString) {
+
+    },
+
+    deleteReport: function (reportString) {
 
     },
 
@@ -216,6 +222,15 @@ const RaidReportManager = {
         replier.reply(responseString);
     }
 }
+
+function init() {
+    DirectoryIO.create(dataDirectory, "");
+
+    DirectoryIO.create(dataDirectory, "Report");
+    FileIO.create(dataDirectory + "Report", "Raid.txt");
+}
+
+init();
 
 /*Utils 객체 확장*/
 Utils.getDustData = function (desiredLocation) { //전국 미세먼지 정보 가져오는 함수
@@ -2584,12 +2599,12 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     if (msg == "모두리셋" || msg == "모두 리셋") {
 
         // TODO : 제보 초기화
-        RaidReportManager.deleteRaidReports();
+        RaidReportManager.deleteReports();
 
         // TODO : 리서치 초기화 (아주 나중에)
         // TODO : 로켓단 초기화 (아주 나중에)
         // TODO : 모집 글 초기화 (아주 나중에)
-        replier.reply("제보와 모집 글을 초기화했습니다.");
+        replier.reply("제보와 모집 글을 모두 초기화했습니다.");
         return;
     }
 
@@ -2633,6 +2648,13 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     // 제보시간변경
 
     // 제보삭제
+
+    // 제보리셋
+    if (msg == "제보 리셋" || msg == "제보리셋") {
+        RaidReportManager.deleteReports();
+        replier.reply("레이드 제보를 초기화했습니다.");
+        return;
+    }
 }
 
 /*
