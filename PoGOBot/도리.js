@@ -21,210 +21,216 @@ var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + 
 
 var roomNameForPrint = '도곡';
 
-// TODO : 파일 입출력
-const rootDirectory = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
+const rootDirectory = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
+const dataDirectory = "PoGoBot" + "/";
+
+// 파일 입출력 객체
+const DirectoryIO = {
+    create: function (path) {
+        var file = new java.io.File(rootDirectory + path + "/");
+        file.mkdirs();
+    }
+}
+
+const FileIO = {
+    create: function (path, name) {
+        try {
+            var file = new java.io.File(rootDirectory + path + "/" + name);
+            var fos = new java.io.FileOutputStream(file);
+            fos.close();
+        } catch (e) {
+            Log.debug(e + ", " + e.lineNumber);
+        }
+    },
+
+    read: function (path, name) {
+        try {
+            var file = new java.io.File(rootDirectory + path + "/" + name);
+            if (!file.exists()) {
+                return null;
+            }
+
+            var fis = new java.io.FileInputStream(file);
+            var isr = new java.io.InputStreamReader(fis);
+            var br = new java.io.BufferedReader(isr);
+
+            var text = br.readLine();
+            var line = "";
+
+            while ((line = br.readLine()) != null) {
+                text += "\n" + line;
+            }
+
+            fis.close();
+            isr.close();
+            br.close();
+
+            return text;
+        } catch (e) {
+            Log.debug(e + ", " + e.lineNumber);
+        }
+    },
+
+    write: function (path, name, text) {
+        try {
+            var file = new java.io.File(rootDirectory + path + "/" + name);
+            var fos = new java.io.FileOutputStream(file);
+            var input = new java.lang.String(text);
+
+            fos.write(input.getBytes());
+            fos.close();
+        } catch (e) {
+            Log.debug(e + ", " + e.lineNumber);
+        }
+    }
+}
 
 // 레이드 제보 관리 객체
-const RaidReportManager = {}
+const RaidReportManager = {
+    deleteReports: function (replier) {
+        FileIO.write(dataDirectory + "Report", "Raid.txt", "");
+    },
 
-RaidReportManager.deleteReports = function () {
+    getReports: function () {
+        FileIO.write(dataDirectory + "Report", "Raid.txt", "Raid");
+        return "레이드 제보";
+    },
 
-}
+    addReport: function (reportString) {
 
-RaidReportManager.getReports = function () {
-    return "레이드 제보";
-}
+    },
 
-RaidReportManager.addReport = function (reportString) {
+    addExistingReport: function (reportString) {
 
-}
+    },
 
-RaidReportManager.addExistingReport = function (reportString) {
+    deleteReport: function (reportString) {
 
-}
+    },
 
-RaidReportManager.addReports = function (reportStrings) {
-    const lastReportString = reportStrings[reportStrings.length - 1];
+    addReports: function (reportStrings) {
+        const lastReportString = reportStrings[reportStrings.length - 1];
 
-    if (!lastReportString.endsWith(" 제보") && !lastReportString.endsWith(" 남음")) {
-        return -1;
-    }
-
-    var addedReportCount = 0;
-
-    for (var i = 0; i < reportStrings.length; i++) {
-        var reportString = reportStrings[i];
-
-        var isAdded = false;
-        if (reportString.endsWith(" 제보")) {
-            isAdded = RaidReportManager.addReport(reportString);
-        }
-        else if (reportString.endsWith(" 남음")) {
-            isAdded = RaidReportManager.addReport(reportString);
+        if (!lastReportString.endsWith(" 제보") && !lastReportString.endsWith(" 남음")) {
+            return -1;
         }
 
-        if (isAdded) {
+        var addedReportCount = 0;
+
+        for (var i = 0; i < reportStrings.length; i++) {
+            var reportString = reportStrings[i];
+
+            var isAdded = false;
+            if (reportString.endsWith(" 제보")) {
+                isAdded = RaidReportManager.addReport(reportString);
+            }
+            else if (reportString.endsWith(" 남음")) {
+                isAdded = RaidReportManager.addReport(reportString);
+            }
+
+            if (isAdded) {
+                addedReportCount++;
+            }
+        }
+
+        /*
+        var raidReportStrings = msg.split("\n");
+    
+        for (var i = 0; i < raidReportStrings.length; i++) {
+            var raidReportString = raidReportStrings[i];
+    
+            // 문자열 끝의 제보를 제거
+            if (raidReportString.endsWith(" 제보")) {
+                raidReportString = raidReportString.substring(0, raidReportString.length - 3);
+            }
+    
+            var raidReportTokens = raidReportString.split(" ");
+    
+            // 시간 처리
+            var timeString = raidReportTokens[0];
+            var time = parseInt(timeString);
+    
+            if (isNaN(time) || timeString.length != 4) {
+                errorFlag[0] = true;
+                continue;
+            }
+    
+            // TODO : 24시간제로 변환
+            // TODO : 시작 시간 예외 처리
+            // TODO : 시작 시간 계산
+            // TODO : 종료 시간 계산
+    
+            // 띄어쓰기가 허용된 횟수보다 많음 → 체육관 이름 오류
+            if (raidReportTokens.length < 2 || raidReportTokens.length > 3) {
+                errorFlag[1] = true;
+                continue;
+            }
+    
+            // 난이도 처리
+            var levelString = raidReportTokens[raidReportTokens.length - 1];
+            var level = parseInt(levelString.substring(0, levelString.length - 1));
+    
+            // 난이도가 없으면 5성으로 처리
+            if (raidReportTokens.length == 2) {
+                // Log.i(levelString + " " + raidReportTokens[1]);
+    
+                // 체육관 이름이 빠짐 → 체육관 이름 오류
+                if (!isNaN(level) && level >= 1 && level <= 6) {
+                    errorFlag[1] = true;
+                    continue;
+                }
+    
+                level = 5;
+            }
+    
+            if (raidReportTokens.length == 3) {
+                // 난이도가 성으로 끝나지 않음 → 체육관 이름 오류
+                if (!levelString.endsWith("성")) {
+                    errorFlag[1] = true;
+                    continue;
+                }
+                // 난이도가 숫자로 시작하지 않거나, 1보다 작거나 6보다 큼 → 난이도 오류
+                else if (isNaN(level) || level < 1 || level > 6) {
+                    errorFlag[2] = true;
+                    continue;
+                }
+            }
+    
+            // 체육관 이름 처리
+            var gymName = raidReportTokens[1];
+    
+            // TODO : 중복 확인
+            // TODO : 배열에 저장
+    
             addedReportCount++;
+            // Log.i("Time : " + time + " Gym Name : " + gymName + " Level : " + level, false);
         }
+        */
+
+        // TODO : 정렬하여 파일에 저장
+        // Log.i("Error : " + errorFlag[0] + " " + errorFlag[1] + " " + errorFlag[2], false);
+        return addedReportCount;
+    },
+
+    printReports: function (replier) {
+        var responseString = RaidReportManager.getReports();
+
+        if (responseString == null || responseString == "") {
+            return;
+        }
+
+        replier.reply(responseString);
     }
-
-    /*
-    var raidReportStrings = msg.split("\n");
-
-    for (var i = 0; i < raidReportStrings.length; i++) {
-        var raidReportString = raidReportStrings[i];
-
-        // 문자열 끝의 제보를 제거
-        if (raidReportString.endsWith(" 제보")) {
-            raidReportString = raidReportString.substring(0, raidReportString.length - 3);
-        }
-
-        var raidReportTokens = raidReportString.split(" ");
-
-        // 시간 처리
-        var timeString = raidReportTokens[0];
-        var time = parseInt(timeString);
-
-        if (isNaN(time) || timeString.length != 4) {
-            errorFlag[0] = true;
-            continue;
-        }
-
-        // TODO : 24시간제로 변환
-        // TODO : 시작 시간 예외 처리
-        // TODO : 시작 시간 계산
-        // TODO : 종료 시간 계산
-
-        // 띄어쓰기가 허용된 횟수보다 많음 → 체육관 이름 오류
-        if (raidReportTokens.length < 2 || raidReportTokens.length > 3) {
-            errorFlag[1] = true;
-            continue;
-        }
-
-        // 난이도 처리
-        var levelString = raidReportTokens[raidReportTokens.length - 1];
-        var level = parseInt(levelString.substring(0, levelString.length - 1));
-
-        // 난이도가 없으면 5성으로 처리
-        if (raidReportTokens.length == 2) {
-            // Log.i(levelString + " " + raidReportTokens[1]);
-
-            // 체육관 이름이 빠짐 → 체육관 이름 오류
-            if (!isNaN(level) && level >= 1 && level <= 6) {
-                errorFlag[1] = true;
-                continue;
-            }
-
-            level = 5;
-        }
-
-        if (raidReportTokens.length == 3) {
-            // 난이도가 성으로 끝나지 않음 → 체육관 이름 오류
-            if (!levelString.endsWith("성")) {
-                errorFlag[1] = true;
-                continue;
-            }
-            // 난이도가 숫자로 시작하지 않거나, 1보다 작거나 6보다 큼 → 난이도 오류
-            else if (isNaN(level) || level < 1 || level > 6) {
-                errorFlag[2] = true;
-                continue;
-            }
-        }
-
-        // 체육관 이름 처리
-        var gymName = raidReportTokens[1];
-
-        // TODO : 중복 확인
-        // TODO : 배열에 저장
-
-        addedReportCount++;
-        // Log.i("Time : " + time + " Gym Name : " + gymName + " Level : " + level, false);
-    }
-    */
-
-    // TODO : 정렬하여 파일에 저장
-    // Log.i("Error : " + errorFlag[0] + " " + errorFlag[1] + " " + errorFlag[2], false);
-    return addedReportCount;
 }
 
-RaidReportManager.printReports = function (replier) {
-    var responseString = RaidReportManager.getReports();
+function init() {
+    DirectoryIO.create(dataDirectory, "");
 
-    if (responseString == null || responseString == "") {
-        return;
-    }
-
-    replier.reply(responseString);
+    DirectoryIO.create(dataDirectory, "Report");
+    FileIO.create(dataDirectory + "Report", "Raid.txt");
 }
 
-/*DoriDB 객체*/
-DoriDB.createDir = function () { //배운 채팅들이 저장될 폴더를 만드는 함수
-    var folder = new java.io.File(sdcard + "/Dori/"); //File 인스턴스 생성
-    folder.mkdirs(); //폴더 생성
-}; DoriDB.saveData = function (name, msg) { //파일에 내용을 저장하는 함수
-    try {
-        var file = new java.io.File(sdcard + "/Dori/" + name + ".txt");
-        var fos = new java.io.FileOutputStream(file);
-        var str = new java.lang.String(msg);
-        fos.write(str.getBytes());
-        fos.close();
-    } catch (e) {
-        Log.debug(e + ", " + e.lineNumber);
-    }
-}; DoriDB.readData = function (name) { //파일에 저장된 내용을 불러오는 함수
-    try {
-        var file = new java.io.File(sdcard + "/Dori/" + name + ".txt");
-        if (!file.exists()) return null;
-        var fis = new java.io.FileInputStream(file);
-        var isr = new java.io.InputStreamReader(fis);
-        var br = new java.io.BufferedReader(isr);
-        var str = br.readLine();
-        var line = "";
-        while ((line = br.readLine()) != null) {
-            str += "\n" + line;
-        }
-        fis.close();
-        isr.close();
-        br.close();
-        return str;
-    } catch (e) {
-        Log.debug(e + ", " + e.lineNumber);
-    }
-};
-
-UniqueDB.createDir = function () { //배운 채팅들이 저장될 폴더를 만드는 함수
-    var folder = new java.io.File(sdcard + "/UniqueDB/"); //File 인스턴스 생성
-    folder.mkdirs(); //폴더 생성
-}; UniqueDB.saveData = function (name, msg) { //파일에 내용을 저장하는 함수
-    try {
-        var file = new java.io.File(sdcard + "/UniqueDB/" + name + ".txt");
-        var fos = new java.io.FileOutputStream(file);
-        var str = new java.lang.String(msg);
-        fos.write(str.getBytes());
-        fos.close();
-    } catch (e) {
-        Log.debug(e + ", " + e.lineNumber);
-    }
-}; UniqueDB.readData = function (name) { //파일에 저장된 내용을 불러오는 함수
-    try {
-        var file = new java.io.File(sdcard + "/UniqueDB/" + name + ".txt");
-        if (!file.exists()) return null;
-        var fis = new java.io.FileInputStream(file);
-        var isr = new java.io.InputStreamReader(fis);
-        var br = new java.io.BufferedReader(isr);
-        var str = br.readLine();
-        var line = "";
-        while ((line = br.readLine()) != null) {
-            str += "\n" + line;
-        }
-        fis.close();
-        isr.close();
-        br.close();
-        return str;
-    } catch (e) {
-        Log.debug(e + ", " + e.lineNumber);
-    }
-};
+init();
 
 /*Utils 객체 확장*/
 Utils.getDustData = function (desiredLocation) { //전국 미세먼지 정보 가져오는 함수
@@ -469,8 +475,6 @@ Utils.getTextFromWeb = function (url) {
         Log.debug(e);
     }
 };
-
-DoriDB.createDir(); //폴더 생성
 
 function timeRenew() {
     currentTime = new Date(); currentHour = currentTime.getHours(); currentMinute = currentTime.getMinutes();
@@ -2595,12 +2599,12 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     if (msg == "모두리셋" || msg == "모두 리셋") {
 
         // TODO : 제보 초기화
-        RaidReportManager.deleteRaidReports();
+        RaidReportManager.deleteReports();
 
         // TODO : 리서치 초기화 (아주 나중에)
         // TODO : 로켓단 초기화 (아주 나중에)
         // TODO : 모집 글 초기화 (아주 나중에)
-        replier.reply("제보와 모집 글을 초기화했습니다.");
+        replier.reply("제보와 모집 글을 모두 초기화했습니다.");
         return;
     }
 
@@ -2626,11 +2630,11 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
         var addedReportCount = RaidReportManager.addReports(reportStrings);
         if (addedReportCount == 0) {
-            replier.reply("레이드 제보 양식에 맞게 제보해주세요.");
+            replier.reply("제보를 추가하지 못했습니다.\n");
         }
         else if (addedReportCount > 0) {
             if (reportStrings.length != addedReportCount) {
-                replier.reply(addedReportCount + "개의 레이드 제보만 추가되었습니다.");
+                replier.reply(addedReportCount + "개의 제보를 추가했습니다.\n");
             }
 
             RaidReportManager.printReports();
@@ -2644,6 +2648,13 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
     // 제보시간변경
 
     // 제보삭제
+
+    // 제보리셋
+    if (msg == "제보 리셋" || msg == "제보리셋") {
+        RaidReportManager.deleteReports();
+        replier.reply("레이드 제보를 초기화했습니다.");
+        return;
+    }
 }
 
 /*
