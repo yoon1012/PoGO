@@ -11,13 +11,12 @@ const sdcard = android.os.Environment.getExternalStorageDirectory().getAbsoluteP
 const DoriDB = {}; const preChat = {}; const lastSender = {}; const botOn = {}; const basicDB = "basic";
 const UniqueDB = {};
 
-// TODO : 변수명 변경 (나중에)
-var currentTime = new Date();
-var currentMillis = currentTime.getTime();
-var currentYear = currentTime.getFullYear();
-var currentHour = currentTime.getHours();
-var currentMinute = currentTime.getMinutes();
-var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + "일";
+var currentDate = new Date();
+var currentTime = currentDate.getTime();
+var currentYear = currentDate.getFullYear();
+var currentHour = currentDate.getHours();
+var currentMinute = currentDate.getMinutes();
+var todayString = (currentDate.getMonth() + 1) + "월 " + currentDate.getDate() + "일";
 
 var roomNameForPrint = '도곡';
 
@@ -96,8 +95,95 @@ const RaidReportManager = {
         return "레이드 제보";
     },
 
+    // TODO : 중복이 있으면 정확한 체육관 이름을 쓰도록 안내해야 함
     addReport: function (reportString) {
+        if (!reportString.endsWith(" 제보")) {
+            return false;
+        }
 
+        reportString = reportString.substring(0, reportString.length - 3);
+        var reportTokens = reportString.split(" ");
+
+        // 띄어쓰기가 허용된 횟수보다 많은 경우
+        if (reportTokens.length < 2 || reportTokens.length > 3) {
+            return false;
+        }
+
+        // 시작 시간 처리
+        var timeString = reportTokens[0];
+        var time = parseInt(timeString, 10);
+
+        if (isNaN(time) || time < 0 || time > 2300 || timeString.length != 4) {
+            return false;
+        }
+
+        var hour = Math.floor(time / 100);
+        var minute = time % 100;
+
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+            return false;
+        }
+
+        // 24시간제
+        if (hour < 12 && currentHour > 11 &&
+            ((currentHour * 60) + currentMinute) - ((hour * 60) + minute) > 180) {
+            hour += 12;
+        }
+
+        if (hour < 5 || hour > 22) {
+            return false;
+        }
+
+        if (((hour * 60) + minute) - ((currentHour * 60) + currentMinute) > 60) {
+            return false;
+        }
+
+        // TODO : 설정된 유지시간보다 시간 차이가 큰 제보 예외 처리
+
+        Log.i("Start Hour : " + hour + ":" + minute);
+
+        /*
+        // 난이도 처리
+        var levelString = raidReportTokens[raidReportTokens.length - 1];
+        var level = parseInt(levelString.substring(0, levelString.length - 1));
+
+        // 난이도가 없으면 5성으로 처리
+        if (raidReportTokens.length == 2) {
+            // Log.i(levelString + " " + raidReportTokens[1]);
+
+            // 체육관 이름이 빠짐 → 체육관 이름 오류
+            if (!isNaN(level) && level >= 1 && level <= 6) {
+                errorFlag[1] = true;
+                continue;
+            }
+
+            level = 5;
+        }
+
+        if (raidReportTokens.length == 3) {
+            // 난이도가 성으로 끝나지 않음 → 체육관 이름 오류
+            if (!levelString.endsWith("성")) {
+                errorFlag[1] = true;
+                continue;
+            }
+            // 난이도가 숫자로 시작하지 않거나, 1보다 작거나 6보다 큼 → 난이도 오류
+            else if (isNaN(level) || level < 1 || level > 6) {
+                errorFlag[2] = true;
+                continue;
+            }
+        }
+
+        // 체육관 이름 처리
+        var gymName = raidReportTokens[1];
+
+        // TODO : 중복 확인
+        // TODO : 배열에 저장
+        // Log.i("Time : " + time + " Gym Name : " + gymName + " Level : " + level, false);
+        */
+
+        // 파일을 열어서 배열을 파싱하여 내용을 정렬하여 추가
+
+        return true;
     },
 
     addExistingReport: function (reportString) {
@@ -133,81 +219,9 @@ const RaidReportManager = {
             }
         }
 
-        /*
-        var raidReportStrings = msg.split("\n");
-    
-        for (var i = 0; i < raidReportStrings.length; i++) {
-            var raidReportString = raidReportStrings[i];
-    
-            // 문자열 끝의 제보를 제거
-            if (raidReportString.endsWith(" 제보")) {
-                raidReportString = raidReportString.substring(0, raidReportString.length - 3);
-            }
-    
-            var raidReportTokens = raidReportString.split(" ");
-    
-            // 시간 처리
-            var timeString = raidReportTokens[0];
-            var time = parseInt(timeString);
-    
-            if (isNaN(time) || timeString.length != 4) {
-                errorFlag[0] = true;
-                continue;
-            }
-    
-            // TODO : 24시간제로 변환
-            // TODO : 시작 시간 예외 처리
-            // TODO : 시작 시간 계산
-            // TODO : 종료 시간 계산
-    
-            // 띄어쓰기가 허용된 횟수보다 많음 → 체육관 이름 오류
-            if (raidReportTokens.length < 2 || raidReportTokens.length > 3) {
-                errorFlag[1] = true;
-                continue;
-            }
-    
-            // 난이도 처리
-            var levelString = raidReportTokens[raidReportTokens.length - 1];
-            var level = parseInt(levelString.substring(0, levelString.length - 1));
-    
-            // 난이도가 없으면 5성으로 처리
-            if (raidReportTokens.length == 2) {
-                // Log.i(levelString + " " + raidReportTokens[1]);
-    
-                // 체육관 이름이 빠짐 → 체육관 이름 오류
-                if (!isNaN(level) && level >= 1 && level <= 6) {
-                    errorFlag[1] = true;
-                    continue;
-                }
-    
-                level = 5;
-            }
-    
-            if (raidReportTokens.length == 3) {
-                // 난이도가 성으로 끝나지 않음 → 체육관 이름 오류
-                if (!levelString.endsWith("성")) {
-                    errorFlag[1] = true;
-                    continue;
-                }
-                // 난이도가 숫자로 시작하지 않거나, 1보다 작거나 6보다 큼 → 난이도 오류
-                else if (isNaN(level) || level < 1 || level > 6) {
-                    errorFlag[2] = true;
-                    continue;
-                }
-            }
-    
-            // 체육관 이름 처리
-            var gymName = raidReportTokens[1];
-    
-            // TODO : 중복 확인
-            // TODO : 배열에 저장
-    
-            addedReportCount++;
-            // Log.i("Time : " + time + " Gym Name : " + gymName + " Level : " + level, false);
-        }
+        /*    
+            
         */
-
-        // TODO : 정렬하여 파일에 저장
         // Log.i("Error : " + errorFlag[0] + " " + errorFlag[1] + " " + errorFlag[2], false);
         return addedReportCount;
     },
@@ -380,7 +394,7 @@ Utils.getEggHatch = function () { //알 부화 정보를 불러오자
         for (var i = 0; i < 1000; i++) {
             hatchList = hatchList + '\u200b';
         }
-        hatchList = hatchList + '\n' + todayDate + ' 현재 실프로드 기준'
+        hatchList = hatchList + '\n' + todayString + ' 현재 실프로드 기준'
         var pokemonList = DoriDB.readData('pokemonInfo').split('\n');
         var eggDistance = ['2KM', '5KM', '10KM', '5KM (걷기 보상)', '10KM (걷기 보상)', '7KM (친구 선물)'];
 
@@ -477,7 +491,7 @@ Utils.getTextFromWeb = function (url) {
 };
 
 function timeRenew() {
-    currentTime = new Date(); currentHour = currentTime.getHours(); currentMinute = currentTime.getMinutes();
+    currentDate = new Date(); currentHour = currentDate.getHours(); currentMinute = currentDate.getMinutes();
 }//시간 갱신
 
 function hasNumber(myString) {
@@ -1509,18 +1523,18 @@ function checkTime(dbName) {
             var tempEndMIN = listInTwelve[i].split(',')[2];
 
             //시간 지나면 자동 삭제 하기
-            currentTime = new Date();
-            if (currentTime.getHours() > 11) { //1시 이후일때 -> 존재하는 팟은 무조건 12시 이후 팟 
+            currentDate = new Date();
+            if (currentDate.getHours() > 11) { //1시 이후일때 -> 존재하는 팟은 무조건 12시 이후 팟 
                 if (tempEndHR < 11) { //오후 11시 이전 팟들에 한해서
                     tempEndHR = tempEndHR + 12;
                 }
             }
 
             var compareTime = 0;
-            if (currentTime.getMinutes() < 10) {
-                compareTime = parseInt(currentTime.getHours() + '' + ('0' + currentTime.getMinutes()));
+            if (currentDate.getMinutes() < 10) {
+                compareTime = parseInt(currentDate.getHours() + '' + ('0' + currentDate.getMinutes()));
             } else {
-                compareTime = parseInt(currentTime.getHours() + '' + currentTime.getMinutes());
+                compareTime = parseInt(currentDate.getHours() + '' + currentDate.getMinutes());
             }
 
             var endTime = parseInt(tempEndHR + tempEndMIN);
@@ -1627,7 +1641,7 @@ function timeSet (dbName,raidContent){
                 startMIN = 9;
             }
         }
-        if (currentTime.getHours() > 10 && startHR < 10){
+        if (currentDate.getHours() > 10 && startHR < 10){
             startHR = startHR + 12;
         }
         if (startMIN < 15){ //끝나는 시, 분 구하기
@@ -1755,7 +1769,7 @@ function timeSet(dbName, raidContent) {
                 startMIN = 9;
             }
         }
-        if (currentTime.getHours() > 10 && startHR < 10) {
+        if (currentDate.getHours() > 10 && startHR < 10) {
             startHR = startHR + 12;
         }
         if (startMIN < 15) { //끝나는 시, 분 구하기
@@ -1912,8 +1926,8 @@ function printReport(dbName, raidList) {
         tempEndMIN = parseInt(tempEndMIN);
 
         //시간 지나면 자동 삭제 하기
-        currentTime = new Date();
-        if ((currentTime.getHours() > tempEndHR) || ((currentTime.getHours() == tempEndHR) && currentTime.getMinutes() > tempEndMIN)) { // 시간이 더 크거나, 시간이 같지만 분이 더 클떄
+        currentDate = new Date();
+        if ((currentDate.getHours() > tempEndHR) || ((currentDate.getHours() == tempEndHR) && currentDate.getMinutes() > tempEndMIN)) { // 시간이 더 크거나, 시간이 같지만 분이 더 클떄
             deleteThisReport(dbName, listInTwelve[i].split(',')[4]);
         } else {
             if (tempStartHR > 12) {
@@ -2559,8 +2573,8 @@ function procCmd(room, cmd, sender, replier) {
         var mem = new android.app.ActivityManager.MemoryInfo();
         am.getMemoryInfo(mem);
         var temp = batteryStatus.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, -1);
-        var ms1 = java.lang.System.currentTimeMillis();
-        var ms2 = java.lang.System.currentTimeMillis();
+        var ms1 = java.lang.System.currentDateMillis();
+        var ms2 = java.lang.System.currentDateMillis();
         var ps = (((ms2 - ms1) / 1000) + "초");
 
         replier.reply("[도리 상태]\n\n전원 : 켜짐\n현재상태 : " + fill[battery - 1] + "\n램 : " + (mem.availMem / mem.totalMem * 100).toFixed(2) + "% 남음\n배터리 : " + Math.round(level / scale * 100) + "%\n온도 : " + Math.round(temp) / 10 + "°C\n전압 : " + voltage + "mv");
@@ -2626,18 +2640,18 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
 
     // TODO : 제보 or 남음
     if (msg.endsWith(" 제보") || msg.endsWith(" 남음")) {
-        const reportStrings = msg.split("\n");
-
+        var reportStrings = msg.split("\n");
         var addedReportCount = RaidReportManager.addReports(reportStrings);
+
         if (addedReportCount == 0) {
-            replier.reply("제보를 추가하지 못했습니다.\n");
+            replier.reply("제보를 추가하지 못했습니다.");
         }
         else if (addedReportCount > 0) {
             if (reportStrings.length != addedReportCount) {
-                replier.reply(addedReportCount + "개의 제보를 추가했습니다.\n");
+                replier.reply(addedReportCount + "개의 제보를 추가했습니다.");
             }
 
-            RaidReportManager.printReports();
+            RaidReportManager.printReports(replier);
         }
 
         return;
@@ -3089,7 +3103,7 @@ if (msg == "사용법" || msg == "사용방법" || ((msg.includes("누구야?") 
 
 }
 
-var currentTime = new Date(); var currentHour = currentTime.getHours(); var currentMinute = currentTime.getMinutes(); var todayDate = (currentTime.getMonth() + 1) + "월 " + currentTime.getDate() + "일";
+var currentDate = new Date(); var currentHour = currentDate.getHours(); var currentMinute = currentDate.getMinutes(); var todayString = (currentDate.getMonth() + 1) + "월 " + currentDate.getDate() + "일";
 
 
 //VS 놀이
