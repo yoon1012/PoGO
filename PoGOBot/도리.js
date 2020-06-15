@@ -126,7 +126,6 @@ const RaidReportManager = {
         return "레이드 제보";
     },
 
-    // TODO : 중복이 있으면 정확한 체육관 이름을 쓰도록 안내해야 함
     addReport: function (reportString) {
         if (!reportString.endsWith(" 제보")) {
             return false;
@@ -135,8 +134,8 @@ const RaidReportManager = {
         reportString = reportString.substring(0, reportString.length - 3);
         var reportTokens = reportString.split(" ");
 
-        // 띄어쓰기가 허용된 횟수보다 많은 경우
-        if (reportTokens.length < 2 || reportTokens.length > 3) {
+        // 토큰 개수가 최소 조건을 충족하지 못하는 경우
+        if (reportTokens.length < 2) {
             return false;
         }
 
@@ -148,79 +147,118 @@ const RaidReportManager = {
             return false;
         }
 
-        var hour = Math.floor(time / 100);
-        var minute = time % 100;
+        var startHour = Math.floor(time / 100);
+        var startMinute = time % 100;
 
-        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+        if (startHour < 0 || startHour > 23 || startMinute < 0 || startMinute > 59) {
             return false;
         }
 
         // 24시간제
-        if (hour < 12 && currentHour > 11 &&
-            ((currentHour * 60) + currentMinute) - ((hour * 60) + minute) > 180) {
-            hour += 12;
+        if (startHour < 12 && currentHour > 11 &&
+            ((currentHour * 60) + currentMinute) - ((startHour * 60) + startMinute) > 180) {
+            startHour += 12;
         }
 
         // 23:00 - 04:59 
-        if (hour < 5 || hour > 22) {
+        if (startHour < 5 || startHour > 22) {
             return false;
         }
 
         // 부화까지 남은 시간은 1시간 이하
-        if (((hour * 60) + minute) - ((currentHour * 60) + currentMinute) > 60) {
+        if (((startHour * 60) + startMinute) - ((currentHour * 60) + currentMinute) > 60) {
             return false;
         }
 
-        // TODO : 현재 시간보다 이른 제보 제외
+        // 종료 시간 계산
+        var endHour = startHour;
+        var endMinute = startMinute + settings.raidDuration;
 
-        Log.i("Start Hour : " + hour + ":" + minute);
-
-        /*
-        // 난이도 처리
-        var levelString = raidReportTokens[raidReportTokens.length - 1];
-        var level = parseInt(levelString.substring(0, levelString.length - 1));
-
-        // 난이도가 없으면 5성으로 처리
-        if (raidReportTokens.length == 2) {
-            // Log.i(levelString + " " + raidReportTokens[1]);
-
-            // 체육관 이름이 빠짐 → 체육관 이름 오류
-            if (!isNaN(level) && level >= 1 && level <= 6) {
-                errorFlag[1] = true;
-                continue;
-            }
-
-            level = 5;
+        if (endMinute < 0) {
+            return false;
         }
 
-        if (raidReportTokens.length == 3) {
-            // 난이도가 성으로 끝나지 않음 → 체육관 이름 오류
-            if (!levelString.endsWith("성")) {
-                errorFlag[1] = true;
-                continue;
-            }
-            // 난이도가 숫자로 시작하지 않거나, 1보다 작거나 6보다 큼 → 난이도 오류
-            else if (isNaN(level) || level < 1 || level > 6) {
+        while (endMinute > 59) {
+            endHour += 1;
+            endMinute -= 60;
+        }
+
+        // 현재 시간보다 이른 제보 제외
+        if (startHour * 60 + startMinute >= endHour * 60 + endMinute) {
+            return false;
+        }
+
+        while (endHour > 23) {
+            endHour -= 24;
+        }
+
+        // 한자리 수 처리
+        if (startHour < 10) {
+            startHour = "0" + startHour.toString();
+        }
+
+        if (startMinute < 10) {
+            startMinute = "0" + startMinute.toString();
+        }
+
+        if (endHour < 10) {
+            endHour = "0" + endHour.toString();
+        }
+
+        if (endMinute < 10) {
+            endMinute = "0" + endMinute.toString();
+        }
+
+        // 난이도
+
+        var levelString = reportTokens[reportTokens.length - 1];
+        var shouldSetLevel5 = false;
+
+        if (!levelString.endsWith("성")) {
+            // TODO : HTTP 통신으로 Google Docs DB 연결
+            // TODO : 맨 끝 문자열에 포켓몬 이름이 들어간 경우 DB 난이도로 자동 설정
+            // TODO : 아닌 경우 체육관 이름으로 파싱 후 5성 처리
+
+            return false;
+        }
+
+        if (levelString.endsWith("성")) {
+            level = parseInt(levelString.substring(0, levelString.length - 1), 10);
+
+            if (isNaN(level) || level < 1 || level > 6) {
                 errorFlag[2] = true;
-                continue;
+                return false;
             }
+
+            level += "성";
         }
 
-        // 체육관 이름 처리
-        var gymName = raidReportTokens[1];
+        // TODO : 체육관 이름 처리
+        var gymName = "";
 
-        // TODO : 중복 확인
-        // TODO : 배열에 저장
-        // Log.i("Time : " + time + " Gym Name : " + gymName + " Level : " + level, false);
-        */
+        for (var i = 1 ; i < reportTokens.length - 1 ; i++) {
+            gymName += reportTokens[i];
+        }
 
+        if (shouldSetLevel5) {
+            gymName += reportTokens[reportTokens.length - 1];
+        }
+
+        if (gymName == null || gymName == "") {
+            return false;
+        }
+
+        Log.i(startHour + ":" + startMinute + "-" + endHour + ":" + endMinute + " " +
+            gymName + " " + level);
+
+        // TODO : 중복 체육관 안내
         // 파일을 열어서 배열을 파싱하여 내용을 정렬하여 추가
 
         return true;
     },
 
     addExistingReport: function (reportString) {
-
+        // TODO : 구글독스로 포켓몬 디비 생성
     },
 
     deleteReport: function (reportString) {
