@@ -32,6 +32,16 @@ const DirectoryIO = {
 }
 
 const FileIO = {
+    exists: function (path, name) {
+        var file = new java.io.File(rootDirectory + path + "/" + name);
+
+        if (file.exists()) {
+            return true;
+        }
+
+        return false;
+    },
+
     create: function (path, name) {
         try {
             var file = new java.io.File(rootDirectory + path + "/" + name);
@@ -84,8 +94,29 @@ const FileIO = {
     }
 }
 
+// 설정값 객체
+var settings = {
+    raidDuration: 45
+}
+
 // 레이드 제보 관리 객체
 const RaidReportManager = {
+    // TODO : 운영진 전용 기능으로 변경 (나중에)
+    updateRaidDuration: function (value) {
+        if (isNaN(value)) {
+            return false;
+        }
+
+        if (value < 45 || value > 180) {
+            return false;
+        }
+
+        settings.raidDuration = value;
+        FileIO.write(dataDirectory, "Settings.txt", JSON.stringify(settings));
+
+        return true;
+    },
+
     deleteReports: function (replier) {
         FileIO.write(dataDirectory + "Report", "Raid.txt", "");
     },
@@ -130,15 +161,17 @@ const RaidReportManager = {
             hour += 12;
         }
 
+        // 23:00 - 04:59 
         if (hour < 5 || hour > 22) {
             return false;
         }
 
+        // 부화까지 남은 시간은 1시간 이하
         if (((hour * 60) + minute) - ((currentHour * 60) + currentMinute) > 60) {
             return false;
         }
 
-        // TODO : 설정된 유지시간보다 시간 차이가 큰 제보 예외 처리
+        // TODO : 현재 시간보다 이른 제보 제외
 
         Log.i("Start Hour : " + hour + ":" + minute);
 
@@ -240,13 +273,27 @@ const RaidReportManager = {
 function init() {
     DirectoryIO.create(dataDirectory, "");
 
+    if (!FileIO.exists(dataDirectory, "Settings.txt")) {
+        FileIO.create(dataDirectory, "Settings.txt");
+    } else {
+        var settingsText = FileIO.read(dataDirectory, "Settings.txt");
+
+        if (settingsText != "") {
+            settings = JSON.parse(settingsText);
+        }
+    }
+
     DirectoryIO.create(dataDirectory, "Report");
-    FileIO.create(dataDirectory + "Report", "Raid.txt");
+
+    if (!FileIO.exists(dataDirectory + "Report", "Raid.txt")) {
+        FileIO.create(dataDirectory + "Report", "Raid.txt");
+    }
 }
 
 init();
 
-/*Utils 객체 확장*/
+/*
+//Utils 객체 확장
 Utils.getDustData = function (desiredLocation) { //전국 미세먼지 정보 가져오는 함수
     try {
         var data = Utils.getTextFromWeb("https://m.search.naver.com/search.naver?where=m&sm=mtb_etc&mra=blQ3&query=" + desiredLocation + "%20%EB%AF%B8%EC%84%B8%EB%A8%BC%EC%A7%80");
@@ -634,7 +681,9 @@ function pokemonInfoReturn(pokemon) {
             ")\n방어: " + defense_FAST + "(" + defense_FAST_DPS + ") / " + defense_CHARGE + "(" + defense_CHARGE_DPS + ")" + counterPart;
     } else { return 'none'; }
 }
+*/
 
+/*
 //여기 아래부터 출석부 관련 함수
 
 //출석부 생성
@@ -1100,9 +1149,11 @@ function addConsecRoster(dbName, sender, rosterMSG, replier) {
             getConsecList.push(initialRoster);
         }
     }        
-    return(readThisRoster(getConsecList));*/
+    return(readThisRoster(getConsecList));//
 }
+*/
 
+/*
 //출석부 시간 변경
 function changeRosterTime(dbName, rosterMSG, replier) {
     //작은분수 시간변경: 5:30 / 작은분수 시간변경: 5시 30분
@@ -1551,6 +1602,7 @@ function checkTime(dbName) {
     //replier.reply(listInTwelve);
     //UniqueDB.saveData(dbName,listInTwelve.join('\n'));
 }
+*/
 
 //출석부 메모
 
@@ -2622,7 +2674,48 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         return;
     }
 
-    // TODO : 유지시간변경 (45분, 60분, 90분 또는 180분)
+    // 유지시간변경
+    if (msg.startsWith("유지시간변경")) {
+        var durationStrings = msg.split(" ");
+        var currentDuration = settings.raidDuration;
+
+        if (durationStrings.length == 1) {
+            var newDuration = 45;
+
+            if (currentDuration == newDuration ||
+                !RaidReportManager.updateRaidDuration(newDuration)) {
+                return;
+            }
+
+            replier.reply("레이드는 앞으로 45분 동안 유지됩니다.");
+        }
+
+        if (durationStrings.length != 2) {
+            return;
+        }
+
+        var durationString = durationStrings[1];
+        if (durationString.endsWith("분")) {
+            durationString = durationString.substring(0, durationString.length - 1);
+        }
+
+        var newDuration = parseInt(durationString, 10);
+        if (isNaN(newDuration)) {
+            return;
+        }
+
+        if (newDuration != 45 && newDuration != 60 && newDuration != 90 && newDuration != 180) {
+            return;
+        }
+
+        if (currentDuration == newDuration ||
+            !RaidReportManager.updateRaidDuration(newDuration)) {
+            return;
+        }
+
+        replier.reply("레이드는 앞으로 " + newDuration + "분 동안 유지됩니다.");
+        return;
+    }
 
     // TODO : 스탑 및 체육관 검색 (아주 나중에)
     // TODO : 로켓단 제보 (아주 나중에)
@@ -2669,6 +2762,8 @@ function response(room, msg, sender, isGroupChat, replier, ImageDB, packageName,
         replier.reply("레이드 제보를 초기화했습니다.");
         return;
     }
+
+    // 모집
 }
 
 /*
